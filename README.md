@@ -1,4 +1,4 @@
 # JoVE_LLM
 
 
-![workflow](workflow.png)
+![workflow](assets/workflow.png)
