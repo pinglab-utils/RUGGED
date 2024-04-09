@@ -4,8 +4,7 @@ sys.path.append('../')
 
 import unittest
 from config import OPENAI_KEY
-from openai_api.openai_client import call_openai_api
-
+from utils.openai_api.openai_client import OpenAI_API
 
 class TestOpenAI(unittest.TestCase):
 
@@ -16,7 +15,9 @@ class TestOpenAI(unittest.TestCase):
 
     def test_openai_api_call(self):
         user_input = "Test user input"
-        response = call_openai_api(user_input)
+        openai_api = OpenAI_API()
+        #response = openai_api.single_chat(summarize=True)
+        response = openai_api.call_openai_api(user_input)
         self.assertIsNotNone(response, "OpenAI API response should not be None")
 
         print(user_input)
@@ -27,7 +28,7 @@ class TestOpenAI(unittest.TestCase):
 if __name__ == '__main__':
     unittest.main()
     loader = unittest.TestLoader()
-
+    import pdb;pdb.set_trace()
     # Define test order
     test_order = [
         'test_openai_config',

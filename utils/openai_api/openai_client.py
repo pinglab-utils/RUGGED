@@ -1,7 +1,6 @@
 # NOTE: There has been an update to the Open AI API
 from openai import OpenAI
 
-client = OpenAI(api_key=OPENAI_KEY)
 import sys
 import os
 from transformers import pipeline
@@ -47,6 +46,7 @@ def write_to_log(log_file, text):
 class OpenAI_API():
 
     def __init__(self):
+        self.client = OpenAI(api_key=OPENAI_KEY)
         self.chat_model = None
         temp = self.get_chat_model()
         self.chat_model = temp
@@ -63,9 +63,8 @@ class OpenAI_API():
     def get_chat_model(self):
         if self.chat_model:
             return self.chat_model
-        
         messages = [{"role": "user", "content": "Hello"}]
-        chat_completion = client.chat.completions.create(model="gpt-3.5-turbo", messages=messages)
+        chat_completion = self.client.chat.completions.create(model="gpt-3.5-turbo", messages=messages)
         return chat_completion
 
     def call_openai_api(self, user_input):
@@ -133,9 +132,9 @@ class OpenAI_API():
 
             # Complete the chat
             if iter == 0 or iter == 1:
-                chat_completion = client.chat.completions.create(model="gpt-3.5-turbo", messages=self.messages)
+                chat_completion = self.client.chat.completions.create(model="gpt-3.5-turbo", messages=self.messages)
             else:
-                chat_completion = client.chat.completions.create(model="gpt-3.5-turbo", messages=self.messages[:-1])
+                chat_completion = self.client.chat.completions.create(model="gpt-3.5-turbo", messages=self.messages[:-1])
             message = self.parse_message(chat_completion)
 
             # Add the response to the context
@@ -209,7 +208,7 @@ class OpenAI_API():
     #         print(self.messages)
     #         iter += 1
 
-if __name__ == "__main__":
-    x = OpenAI_API()
-    x.single_chat(summarize=True)
+#if __name__ == "__main__":
+#    x = OpenAI_API()
+#    x.single_chat(summarize=True)
 
