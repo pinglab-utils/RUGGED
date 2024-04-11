@@ -60,7 +60,6 @@ print(f"Is undirected: {data.is_undirected()}")
 
 # Trying to load in smaller chunks
 from torch_geometric.loader import DataLoader, ClusterData, ClusterLoader
-import pdb; pdb.set_trace()
 # Step 1: Create ClusterData
 cluster_data = ClusterData(data, num_parts=1000, recursive=False, save_dir='./cluster_data')
 
