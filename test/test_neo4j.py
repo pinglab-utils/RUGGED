@@ -33,6 +33,32 @@ class TestNeo4j(unittest.TestCase):
         # This command in the Neo4j Browser worked for me
         # ALTER USER neo4j_api SET PASSWORD 'password';
 
+    def test_neo4j_database(self):
+        # This test will count the number of nodes and edges in the graph
+        driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
+        with driver.session() as session:
+            # Count nodes
+            node_count_query = "MATCH (n) RETURN count(n) AS node_count"
+            node_result = session.run(node_count_query)
+            node_count = node_result.single()["node_count"]
+
+            # Count edges (relationships)
+            edge_count_query = "MATCH ()-[r]->() RETURN count(r) AS edge_count"
+            edge_result = session.run(edge_count_query)
+            edge_count = edge_result.single()["edge_count"]
+
+            print(f"\nNumber of nodes: {node_count}")
+            print(f"Number of edges: {edge_count}")
+
+            # Asserting that there is at least one node and one edge for the test to pass
+            self.assertGreaterEqual(node_count, 1, "There are no nodes. Is the graph empty?")
+            self.assertGreaterEqual(edge_count, 1, "There are no edges. Is the graph empty?")
+
+            driver.close()
+
+        print("Neo4j database node and edge counts verified\n")
+
+
 
 if __name__ == '__main__':
     unittest.main()
@@ -41,7 +67,8 @@ if __name__ == '__main__':
     # Define test order
     test_order = [
         'test_neo4j_config',
-        'test_neo4j_connection'
+        'test_neo4j_connection',
+        'test_neo4j_database'
     ]
 
     # Run each test individually

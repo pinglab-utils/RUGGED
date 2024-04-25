@@ -1,5 +1,5 @@
 import sys
-sys.path.append("..")
+sys.path.append("../../../")
 
 import pandas as pd
 from neo4j import GraphDatabase
@@ -77,7 +77,8 @@ def create_relationship(session, entity_1, entity_2, relation):
 
 
 def load_kg(kg_file):
-    df = pd.read_csv(kg_file, sep=",", header=None)
+    #df = pd.read_csv(kg_file, sep=",", header=None)
+    df = pd.read_csv(kg_file, sep="\t")
     df.columns = ['h', 'r', 't', 'w']
 
     nodes = set(df['h']).union(set(df['t']))
@@ -106,7 +107,8 @@ print("Loading Know2BIO edges")
 # input_file = '../data/2023-08-18_know2bio_whole_kg.txt' # Former dataset 
 # input_file = '../data/whole_kg_sampled.txt' # Smaller dataset for testing purposes
 #input_file = '../neo4j/sample_data.txt'
-input_file = 'k2bio_with_caseolap_scores_and_predictions.csv'
+input_file = '/workspace/jove_llm_kg_workspace/grape_pred_merged_edge_list.tsv'
+#input_file = 'k2bio_with_caseolap_scores_and_predictions.csv'
 _, nodes, relationships = load_kg(input_file)
 
 with connector._driver.session() as session:
