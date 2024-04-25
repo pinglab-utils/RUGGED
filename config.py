@@ -10,6 +10,8 @@ project_root = get_project_root()
 # Relative path of configuration files
 neo4j_config_path = os.path.join(project_root, 'config/neo4j_config.json')
 openai_key_path = os.path.join(project_root, 'config/openai_key.txt')
+ollama_config_path = os.path.join(project_root, 'config/ollama_config.json')
+koboldai_config_path = os.path.join(project_root, 'config/koboldai_config.json')
 
 # Load the neo4j_api configuration file
 with open(neo4j_config_path, 'r') as config_file:
@@ -19,6 +21,14 @@ with open(neo4j_config_path, 'r') as config_file:
 NEO4J_URI = config_data.get('NEO4J_URI', 'bolt://localhost:7687')
 NEO4J_USER = config_data.get('NEO4J_USER', 'neo4j')
 NEO4J_PASSWORD = config_data.get('NEO4J_PASSWORD', 'password')
+
+# Do the same for llama and koboldai
+with open(ollama_config_path, 'r') as config_file:
+    config_data = json.load(config_file)
+OLLAMA_URI = config_data.get('OLLAMA_URI', None)
+with open(koboldai_config_path, 'r') as config_file:
+    config_data = json.load(config_file)
+KOBOLDAI_URI = config_data.get('KOBOLDAI_URI', None)
 
 # Load the OpenAI configuration file
 with open(openai_key_path, 'r') as config_file:
