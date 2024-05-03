@@ -113,9 +113,10 @@ _, nodes, relationships = load_kg(input_file)
 
 with connector._driver.session() as session:
     # Clear graph
-    print("Clearing Graph")
-    clear_graph(session, debug=False)
-    
+    #print("Clearing Graph")
+    #clear_graph(session, debug=False)
+    #TODO add an option to clear the graph
+
     # Create nodes
     print("Creating nodes")
     count = 0
