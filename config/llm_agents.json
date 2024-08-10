@@ -1,0 +1,6 @@
+{
+    "REASONING_AGENT": "gpt-4o",
+    "TEXT_EVALUATOR_AGENT":  "gpt-4o",
+    "CYPHER_QUERY_AGENT":  "gpt-4o",
+    "QUERY_VERIFICATION_AGENT":  "gpt-4o"
+}
