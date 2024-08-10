@@ -1,4 +1,4 @@
-# (Retrieval Under Graph-Guided Explainable disease Distinction (RUGGED)
+# Retrieval Under Graph-Guided Explainable disease Distinction (RUGGED)
 This repository contains the code associated with the in-progress publication titled "Evidence-based Knowledge Synthesis and Hypothesis Validation: Navigating Biomedical Knowledge Bases via Explainable AI and Agentic Systems". This computational workflow integrates Large Language Model (LLM) inference with Retrieval Augmented Generation (RAG) drawing evidence from trustworthy and curated biomedical knowledge bases as well as peer reviewed biomedical text publications. This approach streamlines the identification of explainable and actionable predictions, synthesizing new knowledge from up-to-date information, to pinpoint promising directions for hypothesis-driven investigations.
 
 Please visit the arxiv for more information: [arxiv](https://arxiv.org/abs/2407.12888)
