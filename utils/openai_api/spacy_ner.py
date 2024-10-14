@@ -2,14 +2,15 @@ import json
 import spacy
 
 
-from config.neo4j_config import NODE_FEATURES_PATH
+from config import NODE_FEATURES_PATH
+from config import NODE_RECORDS_PATH
 
 class SpacyNER:
     def __init__(self):
         self.disease_ner_nlp = spacy.load("en_ner_bc5cdr_md")
         self.scientific_entity_nlp = spacy.load("en_ner_bionlp13cg_md")
         self.pos_nlp = spacy.load("en_core_web_sm")
-        self.graph_nodes = json.loads(open(NODE_RECORDS_PATH, "r").read())
+        #self.graph_nodes = json.loads(open(NODE_RECORDS_PATH, "r").read())
 
         # ADDED RECENTLY
         # Might be able to get rid of some stuff above

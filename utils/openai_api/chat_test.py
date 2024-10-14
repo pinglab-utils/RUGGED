@@ -1,13 +1,13 @@
 import os
 from openai import OpenAI
 
-client = OpenAI(api_key=OPENAI_KEY)
 import sys
 
 sys.path.append("../")
 from config import OPENAI_KEY
 
 # Changed the open ai key here
+client = OpenAI(api_key=OPENAI_KEY)
 
 from utils.utils import get_project_root
 

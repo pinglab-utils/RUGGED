@@ -1,12 +1,8 @@
 import os
-# import openai
-# from utils.utils import get_project_root
-from utils.logger import get_log_file, write_to_log  # Import the logger functions
-# from neo4j_api.neo4j_api import Neo4j_API
-# from openai_api.chat_test import single_chat as gpt_response
-# from openai_api.openai_client import OpenAI_API
-
 import sys
+from utils.utils import get_project_root
+from utils.logger import get_log_file, write_to_log  # Import the logger functions
+
 from rugged.knowledge_graph.query import Chat
 from rugged.knowledge_graph.predict import ExplainablePredictions
 from rugged.literature_retrieval.search import LiteratureSearch

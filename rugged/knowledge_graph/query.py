@@ -6,12 +6,14 @@ from langchain.chains import ConversationChain
 from langchain_openai import ChatOpenAI
 
 # Save open AI key
-sys.path.append('../../')
+#sys.path.append('../../')
 from config import OPENAI_KEY
 from utils.neo4j_api.neo4j_driver import Driver
-# from utils.openai_api.named_entity_recognition import NamedEntityRecognition
-# from utils.openai_api.rag_system import RAG
+from utils.openai_api.named_entity_recognition import NamedEntityRecognition
+from utils.openai_api.rag_system import RAG
 from utils.neo4j_api.neo4j_utils import get_node_and_edge_types, read_query_examples
+from utils.utils import extract_code
+#from utils.utils import extract_results
 
 NODE_TYPES, EDGE_TYPES = get_node_and_edge_types()
 QUERY_EXAMPLES = read_query_examples()
@@ -91,7 +93,7 @@ class Chat:
     def conversation(self, max_num_results_returned=30):
         # Define max_tries
         # Will be updated per iteration
-        max_tries = 15
+        max_tries = 5
 
         # Save a driver instance for downstream query checking
         neo4j_driver = Driver()
@@ -203,7 +205,9 @@ class Chat:
                 if i == 0:
                     question = self.inital_question
                 else:
-                    question = updated_input
+                    # TODO sometimes ends up here, when updated_input is null
+                    if updated_input:
+                        question = updated_input
 
                 # If the query code is not -1, then you should be able to use the reasoner
                 # Once the reasoner gives a response, reprompt
@@ -253,6 +257,62 @@ class Chat:
                 print('REASONER MESSAGE')
                 print(message)
 
+
+
+def extract_results(query: str, is_json=False):
+    # Initalize the driver
+    driver = Driver()
+    nodes = driver.query_database(query)
+
+    # Set up the regex
+    node_names = ["MeSH_Compound", "Entrez", "UniProt", "Reactome_Reaction", "MeSH_Tree_Disease", "MeSH_Disease",
+                  "Reactome_Pathway", "MeSH_Anatomy", "cellular_component", "molecular_function", "MeSH_Tree_Anatomy",
+                  "ATC", "DrugBank_Compound", "KEGG_Pathway", "biological_process"]
+    node_finder_pattern = r'(\b(?:' + '|'.join(map(re.escape, node_names)) + r')\S*)'
+
+    # Check if json returned an invalid or valid object
+    if is_json:
+        try:
+            string_json_nodes = json.dumps(nodes)
+        except:
+            return {}
+        matches = re.compile(node_finder_pattern).findall(string_json_nodes)
+    else:
+        matches = re.compile(node_finder_pattern).findall(str(nodes))
+
+    # Clean up results
+    replace_chars = ['{', '}', '\'', '\"', '[', ']', ',', '(', ')']
+    print('MATCHES BEFORE CLEAN UP:', matches)
+    for i, match in enumerate(matches):
+        print(match)
+        for char in replace_chars:
+            match = match.replace(char, "")
+        matches[i] = match
+    # Take set
+    print('MATCHES:', matches)
+
+    return find_node_names(returned_nodes=list(set(matches)))
+
+# Test to see what types of nodes there are
+def find_node_names(max_nodes_to_return=5, returned_nodes=['MeSH_Compound:C568512', 'molecular_function:0140775', 'MeSH_Tree_Disease:C17.800.893.592.450.200']):
+    node_names = dict()
+    # Check all node types
+    for i, returned_node in enumerate(returned_nodes):
+        if i == max_nodes_to_return:
+            break
+        with open(NODE_FEATURES_PATH) as f:
+            # Set up iterator for a single node
+            nodes_objects = ijson.items(f, returned_node)
+            node_object = next(nodes_objects)
+            # If there is a names attribute, then use those
+            if 'names' in node_object.keys():
+                node_names[returned_node] = node_object['names']
+            else:
+                node_names[returned_node] = ["No known names"]
+            continue
+    print("returned_nodes:", returned_nodes)
+    print("max_nodes_to_return:", max_nodes_to_return)
+    return node_names
 
 if __name__ == '__main__':
     question = 'What drugs are currently being prescribed to treat Arrhythmogenic Cardiomyopathy?'

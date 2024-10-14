@@ -1,10 +1,9 @@
 import sys
-sys.path.append(".")
 import json
 import re
-from rag_system import RAG
-from biobert_ner import BioBERT_NER
-from spacy_ner import SpacyNER
+from utils.openai_api.rag_system import RAG
+from utils.openai_api.biobert_ner import BioBERT_NER
+from utils.openai_api.spacy_ner import SpacyNER
 
 
 class NamedEntityRecognition():

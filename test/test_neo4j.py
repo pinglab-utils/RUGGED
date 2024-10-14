@@ -1,8 +1,9 @@
 # test_neo4j.py tests the functionality for neo4j_api
 
-import sys
-sys.path.append('../')
+import os, sys
 
+# Add the root directory to sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import unittest
 from config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
 from neo4j import GraphDatabase
