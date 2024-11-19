@@ -13,6 +13,7 @@ config_paths = {
     "openai": os.path.join(project_root, 'config/openai_key.txt'),
     "ollama": os.path.join(project_root, 'config/ollama_config.json'),
     "koboldai": os.path.join(project_root, 'config/koboldai_config.json')
+    "prompts": os.path.join(project_root, 'config/prompts.json')
 }
 
 # Function to load JSON configuration files
@@ -30,6 +31,7 @@ def load_json_config(file_path):
 neo4j_config = load_json_config(config_paths["neo4j"])
 ollama_config = load_json_config(config_paths["ollama"])
 koboldai_config = load_json_config(config_paths["koboldai"])
+prompts_config = load_json_config(config_paths["prompts"])
 
 # Neo4j Configuration
 NEO4J_URI = neo4j_config.get("NEO4J_URI", "bolt://localhost:7687")
@@ -41,6 +43,14 @@ NODE_RECORDS_PATH = neo4j_config.get("NODE_RECORDS_PATH","./data/knowledge_graph
 NODE_FEATURES_PATH = neo4j_config.get("NODE_FEATURES_PATH",  "./data/knowledge_graph/node_features.json")
 NODE_TYPES_PATH = neo4j_config.get("NODE_TYPES_PATH",  "./data/knowledge_graph/node_types.txt")
 EDGE_TYPES_PATH = neo4j_config.get("EDGE_TYPES_PATH", "./data/knowledge_graph/edge_types.txt")
+
+# Prompt tuning config
+BIAS_MITIGATION_PROMPT = prompts_config.get("BIAS_MITIGATION_PROMPT","")
+QUERY_PROMPT = prompts_config.get("QUERY_PROMPT","")
+PREDICTION_EXPLORER_PROMPT = prompts_config.get("PREDICTION_EXPLORER_PROMPT","")
+PREDICTION_EXPLORER_EXAMPLE = prompts_config.get("PREDICTION_EXPLORER_EXAMPLE","")
+LITERATURE_RETRIEVAL_PROMPT = prompts_config.get("LITERATURE_RETRIEVAL_PROMPT","")
+LITERATURE_RETRIEVAL_EXAMPLE = prompts_config.get("LITERATURE_RETRIEVAL_EXAMPLE","")
 
 # Ollama and KoboldAI Configuration
 OLLAMA_URI = ollama_config.get("OLLAMA_URI", None)
