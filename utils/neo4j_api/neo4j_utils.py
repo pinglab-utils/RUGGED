@@ -3,11 +3,9 @@ import json
 import ijson
 
 import sys
-sys.path.append("../../")
 from utils.neo4j_api.neo4j_driver import Driver
 
-from config.neo4j_config import NODE_FEATURES_PATH, NODE_TYPES_PATH, EDGE_TYPES_PATH
-
+from config import NODE_FEATURES_PATH, NODE_TYPES_PATH, EDGE_TYPES_PATH
 
 def get_node_and_edge_types(node_path=NODE_TYPES_PATH, edge_path=EDGE_TYPES_PATH):
     node_types_path = node_path

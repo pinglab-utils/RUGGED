@@ -1,28 +1,29 @@
 import sys
 import re
 import random
+import json
+import ijson
 from openai import OpenAI
 from langchain.chains import ConversationChain
 from langchain_openai import ChatOpenAI
 
-# Save open AI key
-#sys.path.append('../../')
 from config import OPENAI_KEY
+from config import NODE_FEATURES_PATH
+from config import BIAS_MITIGATION_PROMPT
+from config import QUERY_PROMPT
 from utils.neo4j_api.neo4j_driver import Driver
 from utils.openai_api.named_entity_recognition import NamedEntityRecognition
 from utils.openai_api.rag_system import RAG
 from utils.neo4j_api.neo4j_utils import get_node_and_edge_types, read_query_examples
 from utils.utils import extract_code
-#from utils.utils import extract_results
+from utils.utils import extract_results, find_node_names
+
 
 NODE_TYPES, EDGE_TYPES = get_node_and_edge_types()
 QUERY_EXAMPLES = read_query_examples()
 
-
-class Chat:
-    def __init__(self, initial_question):
-        # Save the inital question for downstream purposes
-        self.inital_question = initial_question
+class QuerySystem:
+    def __init__(self):
 
         # Save an NER object to generate a context for the initial query
         self.ner = NamedEntityRecognition()
@@ -72,6 +73,7 @@ class Chat:
         self.query_evaluator.memory.chat_memory.messages[5].content = QUERY_EXAMPLES
 
         return 7
+                                    
 
     def generate_initial_query_context(self):
         # Generate inital query context
@@ -90,13 +92,43 @@ class Chat:
         """.format(self.inital_question, context, example_node)
         return llm_context, context
 
-    def conversation(self, max_num_results_returned=30):
+    
+                
+    def prepare_prompt(self, user_query, cypher_query, query_results, node_features):
+        
+        prompt = BIAS_MITIGATION_PROMPT + '\n' + QUERY_PROMPT.replace("[USER_QUERY]", user_query)
+        prompt = prompt.replace("[QUERY_RESULTS]",query_results)
+        prompt = prompt.replace("[NODE_FEATURES]", str(node_features))
+        prompt = prompt.replace("[CYPHER_QUERY]", cypher_query)
+        return prompt
+    
+    
+#     def run(self):      
+          #TODO simplify the function below!
+#         neo4j_driver = Driver()
+#         query_code, query_msg, query_msg_raw = neo4j_driver.check_query(cypher_query)
+#         sampled_names = extract_results(query_msg)
+#         reasoner_query = self.prepare_prompt(user_query, cypher_query, query_msg, sampled_names)
+    
+#         self.reasoner.invoke(reasoner_query)
+#         message = self.reasoner.memory.chat_memory.messages[self.r_index].content
+#         self.r_index += 2
+
+#         print('REASONER MESSAGE')
+#         print(message)
+    
+    def run(self, initial_question, max_num_results_returned=30):
+        
+        # Save the inital question for downstream purposes
+        self.inital_question = initial_question
+        
         # Define max_tries
         # Will be updated per iteration
         max_tries = 5
 
         # Save a driver instance for downstream query checking
         neo4j_driver = Driver()
+        self.driver = neo4j_driver
 
         for i in range(9999):
             if i == 0:
@@ -134,8 +166,9 @@ class Chat:
                 if query_code == -1:
                     self.query_builder.invoke(query_msg)
                 else:
-                    updated_input = input('User Input: ')
-                    self.query_builder.invoke(updated_input)
+                    return
+#                     updated_input = input('User Input: ')
+#                     self.query_builder.invoke(updated_input)
 
                 # In either case, you end up building a query and checking it
                 generated_query = extract_code(self.query_builder.memory.chat_memory.messages[self.qb_index].content)
@@ -206,6 +239,7 @@ class Chat:
                     question = self.inital_question
                 else:
                     # TODO sometimes ends up here, when updated_input is null
+                    import pdb;pdb.set_trace()
                     if updated_input:
                         question = updated_input
 
@@ -213,7 +247,7 @@ class Chat:
                 # Once the reasoner gives a response, reprompt
                 if type(query_msg_raw) == list and len(query_msg_raw) > max_num_results_returned:
                     sampled_query_msg_raw = random.sample(query_msg_raw, max_num_results_returned)
-                    sampled_names = extract_results(sampled_query_msg_raw)
+                    sampled_names = extract_results(sampled_query_msg_raw, self.driver)
                     reasoner_query = """
                     Formulate a response based on your knowledge to this question: {}.
                     I queried a biomedical knowledge graph with this query: {}.
@@ -223,7 +257,7 @@ class Chat:
                                                                                    max_num_results_returned,
                                                                                    sampled_query_msg_raw, sampled_names)
                 else:
-                    sampled_names = extract_results(query_msg)
+                    sampled_names = extract_results(query_msg, self.driver)
                     reasoner_query = """
                     Formulate a response based on your knowledge to this question: {}.
                     I queried a biomedical knowledge graph with this query: {}.
@@ -257,65 +291,4 @@ class Chat:
                 print('REASONER MESSAGE')
                 print(message)
 
-
-
-def extract_results(query: str, is_json=False):
-    # Initalize the driver
-    driver = Driver()
-    nodes = driver.query_database(query)
-
-    # Set up the regex
-    node_names = ["MeSH_Compound", "Entrez", "UniProt", "Reactome_Reaction", "MeSH_Tree_Disease", "MeSH_Disease",
-                  "Reactome_Pathway", "MeSH_Anatomy", "cellular_component", "molecular_function", "MeSH_Tree_Anatomy",
-                  "ATC", "DrugBank_Compound", "KEGG_Pathway", "biological_process"]
-    node_finder_pattern = r'(\b(?:' + '|'.join(map(re.escape, node_names)) + r')\S*)'
-
-    # Check if json returned an invalid or valid object
-    if is_json:
-        try:
-            string_json_nodes = json.dumps(nodes)
-        except:
-            return {}
-        matches = re.compile(node_finder_pattern).findall(string_json_nodes)
-    else:
-        matches = re.compile(node_finder_pattern).findall(str(nodes))
-
-    # Clean up results
-    replace_chars = ['{', '}', '\'', '\"', '[', ']', ',', '(', ')']
-    print('MATCHES BEFORE CLEAN UP:', matches)
-    for i, match in enumerate(matches):
-        print(match)
-        for char in replace_chars:
-            match = match.replace(char, "")
-        matches[i] = match
-    # Take set
-    print('MATCHES:', matches)
-
-    return find_node_names(returned_nodes=list(set(matches)))
-
-# Test to see what types of nodes there are
-def find_node_names(max_nodes_to_return=5, returned_nodes=['MeSH_Compound:C568512', 'molecular_function:0140775', 'MeSH_Tree_Disease:C17.800.893.592.450.200']):
-    node_names = dict()
-    # Check all node types
-    for i, returned_node in enumerate(returned_nodes):
-        if i == max_nodes_to_return:
-            break
-        with open(NODE_FEATURES_PATH) as f:
-            # Set up iterator for a single node
-            nodes_objects = ijson.items(f, returned_node)
-            node_object = next(nodes_objects)
-            # If there is a names attribute, then use those
-            if 'names' in node_object.keys():
-                node_names[returned_node] = node_object['names']
-            else:
-                node_names[returned_node] = ["No known names"]
-            continue
-    print("returned_nodes:", returned_nodes)
-    print("max_nodes_to_return:", max_nodes_to_return)
-    return node_names
-
-if __name__ == '__main__':
-    question = 'What drugs are currently being prescribed to treat Arrhythmogenic Cardiomyopathy?'
-    print('User Input: ' + question)
-    chat = Chat(question)
-    chat.conversation()
+                

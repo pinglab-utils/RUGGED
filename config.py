@@ -36,6 +36,12 @@ NEO4J_URI = neo4j_config.get("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = neo4j_config.get("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = neo4j_config.get("NEO4J_PASSWORD", "password")
 
+# Knowledge graph config files
+NODE_RECORDS_PATH = neo4j_config.get("NODE_RECORDS_PATH","./data/knowledge_graph/node_records.json")
+NODE_FEATURES_PATH = neo4j_config.get("NODE_FEATURES_PATH",  "./data/knowledge_graph/node_features.json")
+NODE_TYPES_PATH = neo4j_config.get("NODE_TYPES_PATH",  "./data/knowledge_graph/node_types.txt")
+EDGE_TYPES_PATH = neo4j_config.get("EDGE_TYPES_PATH", "./data/knowledge_graph/edge_types.txt")
+
 # Ollama and KoboldAI Configuration
 OLLAMA_URI = ollama_config.get("OLLAMA_URI", None)
 KOBOLDAI_URI = koboldai_config.get("KOBOLDAI_URI", None)

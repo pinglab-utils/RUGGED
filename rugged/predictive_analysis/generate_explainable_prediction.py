@@ -17,20 +17,17 @@ from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score
 )
 import matplotlib.pyplot as plt
-
-# Initialize logging
-logging.basicConfig(filename='output.log', level=logging.INFO, 
-                    format='%(asctime)s %(message)s')
+import itertools
 
 class KnowledgeGraphModel:
-    def __init__(self, edge_list, node_list):
+    def __init__(self, edge_list, node_list, edges_to_predict):
         self.edge_list = edge_list
         self.node_list = node_list
+        self.edges_to_predict = edges_to_predict
         self.data = None
         self.node_to_index = None
         self.index_to_node = None
         self.graph = None
-        self.edges_to_predict = None
         self.train_data = None
         self.val_data = None
         self.test_data = None
@@ -104,15 +101,20 @@ class KnowledgeGraphModel:
         edge_names = [(index_to_node[e1], index_to_node[e2]) for e1, e2 in edges]
         self.graph = nx.DiGraph()
         self.graph.add_edges_from(edge_names)
-
-        # For simplicity, define the disease and drug indices manually (this can be made dynamic based on input data)
-        self.edges_to_predict = [
-            ('DrugBank_Compound:DB00335', 'MeSH_Disease:D002313'),
-            ('DrugBank_Compound:DB00571', 'MeSH_Disease:D002311')
+        
+        # Filter out edges to predict that already exist in the knowledge graph
+        existing_edges_set = set(edge_names)  # Convert existing edges to a set for fast lookup
+        filtered_edges_to_predict = [
+            (n1, n2) for n1, n2 in self.edges_to_predict
+            if (n1, n2) not in existing_edges_set and (n2, n1) not in existing_edges_set  # Check both directions for undirected edges
         ]
-        self.edges_to_predict = [(node_to_index[n1], node_to_index[n2]) for n1, n2 in self.edges_to_predict]
 
-        return self.data, node_to_index, index_to_node, self.graph, self.edges_to_predict
+        # Update self.edges_to_predict with the filtered list
+        self.edges_to_predict = filtered_edges_to_predict
+        # Convert the filtered edges to index-based format
+        self.edges_to_predict_idx = [(node_to_index[n1], node_to_index[n2]) for n1, n2 in filtered_edges_to_predict]
+
+        return self.data, node_to_index, index_to_node, self.graph, self.edges_to_predict_idx
 
     def prepare_data(self):
         logging.info("Preparing data for training.")
@@ -137,6 +139,8 @@ class KnowledgeGraphModel:
                 logging.info(f'Val Metrics: {eval_metrics}')
                 logging.info(f'Test Metrics: {test_metrics}')
         logging.info("Model training complete.")
+        
+        #TODO return eval and save
         return model
 
     def train_step(self, model, optimizer):
@@ -208,12 +212,13 @@ class KnowledgeGraphModel:
         return edge_index
     
 
-    def save_predictions(self, edges, probabilities, output_file='predictions.tsv'):
+    def save_predictions(self, edges, probabilities, node_index_mapping, output_file='predictions.tsv'):
         logging.info(f"Saving predictions to {output_file}.")
         with open(output_file, 'w') as outfile:
             outfile.write("edge\tprobability\n")
             for edge, prob in zip(edges, probabilities):
-                outfile.write(f"{edge}\t{float(prob)}\n")
+                edge_names = (node_index_mapping[edge[0]], node_index_mapping[edge[1]])
+                outfile.write(f"{edge}\t{edge_names}\t{float(prob)}\n")
 
 
 class GCN(torch.nn.Module):
@@ -256,7 +261,7 @@ class ExplainableGraphModel:
         self.explainer = Explainer(
             model=self.model,
             explanation_type='model',
-            algorithm=GNNExplainer(epochs=200),
+            algorithm=GNNExplainer(epochs=1000),
             node_mask_type='attributes',
             edge_mask_type='object',
             model_config=self.model_config,
@@ -315,6 +320,7 @@ class ExplainableGraphModel:
         if print_weights:
             for e_name_pair, imp in importance_weights:
                 print(e_name_pair,imp)
+                logging.info(str(e_name_pair)+"\t"+str(imp))
         # save output pdf and csv
         if output_file:
             plt.savefig(output_file)
@@ -326,17 +332,36 @@ class ExplainableGraphModel:
                 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
-        logging.error("Insufficient arguments. Usage: python kg_pred.py <kg_edge_list> <kg_node_list> <output_folder>")
         print("Insufficient arguments. Usage: python kg_pred.py <kg_edge_list> <kg_node_list> <output_folder>")
         sys.exit(1)
 
     kg_edge_list = sys.argv[1]
     kg_node_list = sys.argv[2]
     output_folder = sys.argv[3]
+            
+    # TODO For simplicity, define the disease and drug indices manually (this can be made dynamic based on input data)
+    drug_candidates = ["DrugBank_Compound:DB00264", 
+                       "DrugBank_Compound:DB00280", 
+                       "DrugBank_Compound:DB00281", 
+                       "DrugBank_Compound:DB00335", 
+                       "DrugBank_Compound:DB00379", 
+                       "DrugBank_Compound:DB00908", 
+                       "DrugBank_Compound:DB01115", 
+                       "DrugBank_Compound:DB01118", 
+                       "DrugBank_Compound:DB01136", 
+                       "DrugBank_Compound:DB01182", 
+                       "DrugBank_Compound:DB01193"
+                    ]
+    disease_candidates = ['MeSH_Disease:D002311','MeSH_Disease:D019571']
+    edges_to_predict = list(itertools.product(drug_candidates, disease_candidates))
+    
+    # Initialize logging
+    logging.basicConfig(filename=os.path.join(output_folder,'output.log'), level=logging.INFO, 
+                        format='%(asctime)s %(message)s')
 
     print("Loading Knowledge Graph")
     # Initialize device and data loading
-    kg_model = KnowledgeGraphModel(kg_edge_list, kg_node_list)
+    kg_model = KnowledgeGraphModel(kg_edge_list, kg_node_list, edges_to_predict)
 
     # Load and preprocess data
     kg_model.load_kg_data()
@@ -346,14 +371,17 @@ if __name__ == "__main__":
 
     print("Training GCN model")
     # Train and test the model
-    trained_model = kg_model.train_model(in_channels=14, hidden_channels=128, out_channels=64)
+    # TODO make in_channels as a dynamic variable
+    trained_model = kg_model.train_model(in_channels=6, hidden_channels=128, out_channels=64)
 
     # Save predictions
     print("Predicting edges")
-    probabilities, outputs = kg_model.predict_links(trained_model, kg_model.edges_to_predict, kg_model.data.x)
-    ranked_outputs = get_ranked_output(kg_model.edges_to_predict, probabilities)
+    probabilities, outputs = kg_model.predict_links(trained_model, kg_model.edges_to_predict_idx, kg_model.data.x)
+    ranked_outputs = get_ranked_output(kg_model.edges_to_predict_idx, probabilities)
     pred_output = os.path.join(output_folder, "predictions.tsv")
-    kg_model.save_predictions(kg_model.edges_to_predict, probabilities, output_file=pred_output)
+    print(probabilities)
+    print(outputs)
+    kg_model.save_predictions(kg_model.edges_to_predict_idx, probabilities, kg_model.index_to_node, output_file=pred_output)
     
     # Explain predictions
     model_config = ModelConfig(
@@ -364,18 +392,20 @@ if __name__ == "__main__":
     graph_model = ExplainableGraphModel(trained_model, kg_model.train_data, kg_model.val_data, kg_model.index_to_node, kg_model.graph, model_config)
     
     n = 5 # Examine the top n predictions
+    logging.info(f"Explaining top {n} predictions")
     count = 0
     explanation_output_folder = os.path.join(output_folder,"explanations")
     if not os.path.exists(explanation_output_folder):
         os.makedirs(explanation_output_folder)
     for edge_to_explain, _ in ranked_outputs:
-#         import pdb;pdb.set_trace()
         e1, e2 = (kg_model.index_to_node[edge_to_explain[0]],kg_model.index_to_node[edge_to_explain[1]])
         edge_name = f"{e1}_{e2}"
         xai_figure_output = os.path.join(explanation_output_folder,f"{edge_name}_edge_importance.pdf")
         print(f"Edge: {edge_to_explain} {edge_name}")
+        logging.info(f"Edge: {edge_to_explain} {edge_name}")
         importances = graph_model.visualize_explainable_prediction(edge_to_explain, output_file=xai_figure_output)
         print(f"Saved to file {xai_figure_output}")
+        logging.info(f"Saved to file {xai_figure_output}")
 
         count += 1
         if count == n:
