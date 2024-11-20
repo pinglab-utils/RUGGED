@@ -1,5 +1,5 @@
 # Text corpus
-The text corpus follows the JSON Lines (JSONL) format, where each line is a separate JSON object representing an individual article with specific fields representing details of the document.
+The text corpus follows the JSON Lines (JSONL) format, where each line is a separate JSON object representing an individual article with specific fields representing details of the document. These information should detailed in a .json file (e.g., pubmed.json) in this directory.
 ## Required Fields
 * PMID: A unique identifier for the article (e.g., PubMed ID).
 * ArticleTitle: The title of the article.
