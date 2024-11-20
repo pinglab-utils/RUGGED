@@ -4,8 +4,7 @@ sys.path.append('../')
 
 import unittest
 from config import KOBOLDAI_URI
-from langchain_community.llms import KoboldApiLLM
-
+from rugged.llms.koboldai_llm import KoboldAILLM
 
 class TestKoboldAI(unittest.TestCase):
 
@@ -14,10 +13,13 @@ class TestKoboldAI(unittest.TestCase):
 
         print("KOBOLDAI_URI:", KOBOLDAI_URI)
 
+        
     def test_koboldai_api_call(self):
+        """Test the invoke method of KoboldAILLM."""        
         user_input = "Test user input"
-        llm = KoboldApiLLM(endpoint=KOBOLDAI_URI, max_length=80)
-        response = llm.invoke(user_input)
+        llm = KoboldAILLM()
+        llm.invoke(user_input)
+        response = llm.get_response()
  
         self.assertIsNotNone(response, "KoboldAI API response should not be None")
         print(user_input)

@@ -12,7 +12,9 @@ config_paths = {
     "neo4j": os.path.join(project_root, 'config/neo4j_config.json'),
     "openai": os.path.join(project_root, 'config/openai_key.txt'),
     "ollama": os.path.join(project_root, 'config/ollama_config.json'),
-    "koboldai": os.path.join(project_root, 'config/koboldai_config.json')
+    "koboldai": os.path.join(project_root, 'config/koboldai_config.json'),
+    "huggingface": os.path.join(project_root, 'config/huggingface_config.json'),
+    "agents": os.path.join(project_root, 'config/llm_agents.json'),
     "prompts": os.path.join(project_root, 'config/prompts.json')
 }
 
@@ -31,6 +33,8 @@ def load_json_config(file_path):
 neo4j_config = load_json_config(config_paths["neo4j"])
 ollama_config = load_json_config(config_paths["ollama"])
 koboldai_config = load_json_config(config_paths["koboldai"])
+huggingface_config = load_json_config(config_paths["huggingface"])
+agents_config = load_json_config(config_paths["agents"])
 prompts_config = load_json_config(config_paths["prompts"])
 
 # Neo4j Configuration
@@ -44,6 +48,12 @@ NODE_FEATURES_PATH = neo4j_config.get("NODE_FEATURES_PATH",  "./data/knowledge_g
 NODE_TYPES_PATH = neo4j_config.get("NODE_TYPES_PATH",  "./data/knowledge_graph/node_types.txt")
 EDGE_TYPES_PATH = neo4j_config.get("EDGE_TYPES_PATH", "./data/knowledge_graph/edge_types.txt")
 
+# LLM Agent config
+REASONING_AGENT = agents_config.get("REASONING_AGENT","")
+TEXT_EVALUATOR_AGENT = agents_config.get("TEXT_EVALUATOR_AGENT","")
+CYPHER_QUERY_AGENT = agents_config.get("CYPHER_QUERY_AGENT","")
+QUERY_VERIFICATION_AGENT  = agents_config.get("QUERY_VERIFICATION_AGENT","")
+
 # Prompt tuning config
 BIAS_MITIGATION_PROMPT = prompts_config.get("BIAS_MITIGATION_PROMPT","")
 QUERY_PROMPT = prompts_config.get("QUERY_PROMPT","")
@@ -55,6 +65,10 @@ LITERATURE_RETRIEVAL_EXAMPLE = prompts_config.get("LITERATURE_RETRIEVAL_EXAMPLE"
 # Ollama and KoboldAI Configuration
 OLLAMA_URI = ollama_config.get("OLLAMA_URI", None)
 KOBOLDAI_URI = koboldai_config.get("KOBOLDAI_URI", None)
+
+# Huggingface Configuration
+HF_MODEL = huggingface_config.get("HF_MODEL", None)
+
 # OpenAI Configuration
 try:
     with open(config_paths["openai"], 'r') as openai_file:
