@@ -39,7 +39,8 @@ The node properties file is a JSON dictionary where each key represents a node I
 Format:
 
 
-`{
+```
+{
   "node_id": {
     "property_1": "value_1",
     "property_2": "value_2",
@@ -47,7 +48,7 @@ Format:
   },
   ...
 }
-`
+```
 
 
 
