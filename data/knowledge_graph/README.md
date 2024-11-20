@@ -29,10 +29,13 @@ The nodes file maps each node to its corresponding type. Each row in the file sh
 `node_id    node_type`
 
 
-node_id: The unique identifier for the node (e.g., "Node1").
-node_type: The type or category of the node (e.g., "UniProt", "Entrez").
+* node_id: The unique identifier for the node (e.g., "Node1").
+* node_type: The type or category of the node (e.g., "UniProt", "Entrez").
+
 Typically, follow the namespace identifier (node type) followed by the node name (i.e., Uniprot:Protein1)
 
+
+Do not include the header within the file.
 ## 3. Node Properties File (node_properties.json)
 
 The node properties file is a JSON dictionary where each key represents a node ID, and the value is another dictionary containing the properties of that node. Properties can include metadata, attributes, or any additional information.
