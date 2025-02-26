@@ -1,19 +1,41 @@
 from ..llms.openai_llm import OpenAILLM
-from ..huggingface_llm.py import HuggingFaceLLM
-from ..koboldai_llm import KoboldAILLM
-from ..ollama_llm.py import OllamaLLM
+from ..llms.huggingface_llm import HuggingFaceLLM
+from ..llms.koboldai_llm import KoboldAILLM
+from ..llms.ollama_llm import OllamaLLM
 
-def load_agent(model_name):
-    ''' Load the appropriate LLM agent based on the model name. '''
+from .text_summarizer_agent import TextSummarizerAgent
+from .text_evaluator_agent import TextEvaluatorAgent
+from .reasoning_agent import ReasoningAgent
+from .query_verification_agent import QueryVerificationAgent
+from .cypher_query_agent import CypherQueryAgent
 
-    match model_name:
-        case 'ollama':
-            return OllamaLLM()
-        case 'kobold':
-            return KoboldAILLM()
-        case 'huggingface':
-            return HuggingFaceLLM()
-        case _:
-            # Load OpenAI model
-            return OpenAILLM(model_name=model_name)
-    
+def load_llm(model_name):
+    '''Load the appropriate LLM based on the model name.'''
+    if model_name == 'ollama':
+        return OllamaLLM()
+    elif model_name == 'kobold':
+        return KoboldAILLM()
+    elif model_name == 'huggingface':
+        return HuggingFaceLLM()
+    else:
+        return OpenAILLM(model_name=model_name)
+
+def load_text_evaluator_agent(model_name):
+    '''Instantiate a Text Evaluator Agent'''
+    llm = load_llm(model_name)
+    return TextEvaluatorAgent(llm)
+
+def load_reasoning_agent(model_name):
+    '''Instantiate a Reasoning Agent'''
+    llm = load_llm(model_name)
+    return ReasoningAgent(llm)
+
+def load_query_verification_agent(model_name):
+    '''Instantiate a Query Verification Agent'''
+    llm = load_llm(model_name)
+    return QueryVerificationAgent(llm)
+
+def load_cypher_query_agent(model_name):
+    '''Instantiate a Cypher Query Agent'''
+    llm = load_llm(model_name)
+    return CypherQueryAgent(llm)

@@ -1,5 +1,4 @@
 from .base_llm import BaseLLM
-from langchain_openai import ChatOpenAI
 from langchain.chains import ConversationChain
 from langchain_community.llms import KoboldApiLLM
 from config import KOBOLDAI_URI

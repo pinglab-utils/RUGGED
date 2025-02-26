@@ -1,3 +1,4 @@
+from ..llms.base_llm import BaseLLM
 
 class ReasoningAgent:
     def __init__(self, llm: BaseLLM):
@@ -5,3 +6,9 @@ class ReasoningAgent:
 
     def reason(self, prompt: str) -> str:
         return self.llm.invoke(prompt)
+
+                                    
+
+
+
+    

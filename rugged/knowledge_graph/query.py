@@ -32,12 +32,14 @@ class QuerySystem:
         self.query_builder = ConversationChain(llm=ChatOpenAI(model_name="gpt-4o", openai_api_key=OPENAI_KEY))
         self.query_evaluator = ConversationChain(llm=ChatOpenAI(model_name="gpt-4o", openai_api_key=OPENAI_KEY))
         self.reasoner = ConversationChain(llm=ChatOpenAI(model_name="gpt-4o", openai_api_key=OPENAI_KEY))
+        #TODO replace with agents
 
         # Add contexts to each LLM agent
         self.qb_index = self.init_query_builder(debug=False)
         self.qe_index = self.init_query_evaluator()
         self.r_index = 1
 
+    #TODO moved to cypher_query_agent
     def init_query_builder(self, debug=False):
         # The intial context is composed the nodes and edges
         self.query_builder.invoke(
@@ -59,6 +61,7 @@ class QuerySystem:
 
         return 7
 
+    #TODO moved to query_verification_agent
     def init_query_evaluator(self):
         # Also provide the query evaluator with the relevant context
         self.query_evaluator.invoke(
@@ -75,6 +78,7 @@ class QuerySystem:
         return 7
                                     
 
+    #TODO moved to cypher_query_agent
     def generate_initial_query_context(self):
         # Generate inital query context
         # Also return the inital named entities
@@ -139,6 +143,7 @@ class QuerySystem:
                 print("*****\nNAMED ENTITIES\n{}\n*****".format(ner_context))
                 # DEBUG
 
+                #TODO move these to the reasoning_agent
                 # Build an inital query
                 self.query_builder.invoke(initial_question)
                 generated_query = extract_code(self.query_builder.memory.chat_memory.messages[self.qb_index].content)
@@ -161,6 +166,7 @@ class QuerySystem:
                 # DEBUG
 
             else:
+                #TODO move these to the reasoning_agent
                 # In the else, either you are reprompting or you are still trying to 
                 # get a query that can compile
                 if query_code == -1:
@@ -198,6 +204,7 @@ class QuerySystem:
             if i > max_tries:
                 # If the max tries are exceeded, increment by i and then retype reasoner query
                 max_tries += i
+                #TODO move these to the reasoning_agent
                 reasoner_query = """
                 Formulate a response based on your knowledge to this question: {}.
                 I tried to query a biomedical knowledge graph with this query: {}.
@@ -243,6 +250,7 @@ class QuerySystem:
                     if updated_input:
                         question = updated_input
 
+                #TODO move these to the reasoning_agent
                 # If the query code is not -1, then you should be able to use the reasoner
                 # Once the reasoner gives a response, reprompt
                 if type(query_msg_raw) == list and len(query_msg_raw) > max_num_results_returned:

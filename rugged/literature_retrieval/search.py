@@ -30,12 +30,15 @@ class LiteratureSearch:
         
         self.corpus = corpus
         
+        #TODO use agent classes instead
         # LLM for reasoning and evaluating the response
         self.search_evaluator = ConversationChain(llm=ChatOpenAI(model_name="gpt-4o", openai_api_key=OPENAI_KEY))
         self.reasoner = ConversationChain(llm=ChatOpenAI(model_name="gpt-4o", openai_api_key=OPENAI_KEY))
         self.e_index = 0
         self.r_index = 0 
         
+        
+        #TODO move to TextEvaluatorAgent
         # Text summarizer
         model_name = 'facebook/bart-large-cnn'
         self.tokenizer = BartTokenizer.from_pretrained(model_name)
@@ -81,6 +84,8 @@ class LiteratureSearch:
                     ccr_docs += [json_object]
         return orc_docs, ccr_docs
     
+    
+    #TODO move to TextEvaluatorAgent
     def verify_literature(self, docs):
         literature_verification_prompt = f"Are the following documents relevant to the user query? Do not explain how they are relevant, only provide a list of PMIDs which are NOT relevant (e.g., 'The following are not relevant to the user query: 123456, 098765'). User query: {self.user_query}\nDocuments: {str(docs)}"
         self.search_evaluator.invoke(literature_verification_prompt)
@@ -93,7 +98,8 @@ class LiteratureSearch:
                 relevant_docs += [d]
         return relevant_docs
         
-        
+    
+    #TODO move to reasoning_agent    
     def prepare_prompt(self):
         prompt = LITERATURE_RETRIEVAL_PROMPT.replace("[USER_QUESTION]",self.user_query)
         prompt = prompt.replace("[SUMMARY_OF_CONVERSAION]",self.convo_summary)
@@ -101,7 +107,8 @@ class LiteratureSearch:
         prompt = prompt.replace("[EXAMPLE]",EXAMPLE)
         self.prompt = prompt
         
-        
+    
+    #TODO encapsulate the code from query.py to reduce redundancies  
     def identify_keywords(self):
         #TODO extract keywords with entity matching from user question and conversation history
         keyword_set_1 = {'metoprolol': ['Kapspargo', 'Lopressor', 'Lopressor Hct', 'Toprol']}
@@ -164,13 +171,14 @@ class LiteratureSearch:
 
         return pmids
     
+    #TODO move to TextEvaluatorAgent
     def summarize_section(text):
         inputs = self.tokenizer.encode("summarize: " + text, return_tensors="pt", max_length=1024, truncation=True)
         summary_ids = self.summarizer_model.generate(inputs, max_length=200, min_length=40, length_penalty=2.0, num_beams=4, early_stopping=True)
         summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
         return self.clean_summary(summary)  # Clean each summary
 
-
+    #TODO move to TextEvaluatorAgent
     def clean_summary(text):
         # Remove any unwanted text patterns
         cleaned_text = text.replace("Summarize: ", "")
@@ -179,6 +187,7 @@ class LiteratureSearch:
         return cleaned_text
 
 
+    #TODO move to TextEvaluatorAgent
     def summarize_long_document(text, chunk_size=500):
         words = text.split()
         chunks = [' '.join(words[i:i + chunk_size]) for i in range(0, len(words), chunk_size)]
@@ -187,13 +196,15 @@ class LiteratureSearch:
         return combined_summary
     
     
+    #TODO move to TextEvaluatorAgent
     def prepare_prompt(self):
         prompt = BIAS_MITIGATION_PROMPT + '\n' + LITERATURE_RETRIEVAL_PROMPT.replace("[USER_QUERY]", self.user_query)
         prompt = prompt.replace("[SUMMARY_OF_CONVERSAION]", self.convo_summary)
         prompt = prompt.replace("[DOCUMENTS]", str(self.documents))
         return prompt
 
-                                    
+                 
+    #TODO move to reasoning_agent                   
     def reason(self, prompt):
         
         # Increment by one for invoke prompt

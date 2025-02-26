@@ -22,6 +22,7 @@ class PredictionExplorer:
         # Log file for writing program progress
         self.log_file = log_file
         
+        #TODO use agent classes instead
         # LLM for reasoning the response
         self.reasoner = ConversationChain(llm=ChatOpenAI(model_name="gpt-4o", openai_api_key=OPENAI_KEY))
         self.r_index = 0 #TODO global reasoner and r_index
@@ -130,7 +131,7 @@ class PredictionExplorer:
             else:
                 print("Invalid input. Please enter 'y' for yes, or 'n' for no.")
     
-    
+    #TODO move this code to utils to reduce redundancy
     def get_node_features(self, node_id):
         """Retrieve node features for a specific node from a flat JSON file."""
         with open(self.node_features_file, 'r') as file:
@@ -303,6 +304,7 @@ class PredictionExplorer:
                 print("Invalid input. Please enter a number.")
                 
                 
+    # Move to reasoning agent
     def prepare_prompt(self, user_query, nodes, prediction_results):
         
         node1, node2 = nodes
@@ -313,7 +315,8 @@ class PredictionExplorer:
         prompt = prompt.replace("[PREDICTION_RESULTS]", prediction_results)
         return prompt
 
-                                    
+                               
+    # Move to reasoning agent
     def reason(self, prompt):
         
         # Increment by one for invoke prompt
