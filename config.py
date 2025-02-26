@@ -22,7 +22,12 @@ config_paths = {
 def load_json_config(file_path):
     try:
         with open(file_path, 'r') as file:
-            return json.load(file)
+            data = json.load(file)
+        # Handle path conversion to absolute paths
+        for key, value in data.items():
+            if 'PATH' in key and isinstance(value, str):
+                data[key] = os.path.abspath(os.path.join(project_root, value))
+        return data
     except FileNotFoundError:
         print(f"Configuration file not found: {file_path}")
     except json.JSONDecodeError:
@@ -43,10 +48,11 @@ NEO4J_USER = neo4j_config.get("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = neo4j_config.get("NEO4J_PASSWORD", "password")
 
 # Knowledge graph config files
-NODE_RECORDS_PATH = neo4j_config.get("NODE_RECORDS_PATH","./data/knowledge_graph/node_records.json")
-NODE_FEATURES_PATH = neo4j_config.get("NODE_FEATURES_PATH",  "./data/knowledge_graph/node_features.json")
-NODE_TYPES_PATH = neo4j_config.get("NODE_TYPES_PATH",  "./data/knowledge_graph/node_types.txt")
-EDGE_TYPES_PATH = neo4j_config.get("EDGE_TYPES_PATH", "./data/knowledge_graph/edge_types.txt")
+NODE_RECORDS_PATH = neo4j_config.get("NODE_RECORDS_PATH",os.path.join(project_root, "data/knowledge_graph/node_records.json"))
+NODE_FEATURES_PATH = neo4j_config.get("NODE_FEATURES_PATH",os.path.join(project_root, "data/knowledge_graph/node_features.json"))
+NODE_TYPES_PATH = neo4j_config.get("NODE_TYPES_PATH",  os.path.join(project_root, "data/knowledge_graph/node_types.txt"))
+EDGE_TYPES_PATH = neo4j_config.get("EDGE_TYPES_PATH", os.path.join(project_root, "data/knowledge_graph/edge_types.txt"))
+QUERY_EXAMPLES = neo4j_config.get("QUERY_EXAMPLES", os.path.join(project_root, "data/query_examples.txt"))
 
 # LLM Agent config
 REASONING_AGENT = agents_config.get("REASONING_AGENT","")

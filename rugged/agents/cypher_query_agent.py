@@ -29,8 +29,7 @@ class CypherQueryAgent:
 
         return 7
     
-    
-        def generate_initial_query_context(self):
+    def generate_initial_query_context(self):
         # Generate inital query context
         # Also return the inital named entities
         context = self.ner.get_context(self.inital_question)

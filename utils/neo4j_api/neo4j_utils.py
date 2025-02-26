@@ -5,7 +5,16 @@ import ijson
 import sys
 from utils.neo4j_api.neo4j_driver import Driver
 
-from config import NODE_FEATURES_PATH, NODE_TYPES_PATH, EDGE_TYPES_PATH
+from config import NODE_FEATURES_PATH, NODE_TYPES_PATH, EDGE_TYPES_PATH, QUERY_EXAMPLES
+
+def get_node_features(node_id):
+    """Retrieve node features for a specific node from a flat JSON file."""
+    with open(NODE_FEATURES_PATH, 'r') as file:
+        # Iterate over the top-level keys and values in the JSON
+        for key, value in ijson.kvitems(file, ''):
+            if key == node_id:
+                return value  
+    return None  # Return None if the node features are not found
 
 def get_node_and_edge_types(node_path=NODE_TYPES_PATH, edge_path=EDGE_TYPES_PATH):
     node_types_path = node_path
@@ -27,7 +36,7 @@ def get_node_and_edge_types(node_path=NODE_TYPES_PATH, edge_path=EDGE_TYPES_PATH
     return node_types, edge_types
 
 
-def read_query_examples(query_examples_path='data/query_examples.txt'):
+def read_query_examples(query_examples_path=QUERY_EXAMPLES):
     with open(query_examples_path, 'r') as f:
         query_examples = f.read()
         return query_examples
@@ -38,7 +47,6 @@ def extract_code(response: str):
     # Combine code to be one block
     code = '\n'.join(code_blocks)
     return code
-
 
 # Test to see what types of nodes there are
 def find_node_names(max_nodes_to_return=5, returned_nodes=['MeSH_Compound:C568512', 'molecular_function:0140775',
@@ -51,9 +59,9 @@ def find_node_names(max_nodes_to_return=5, returned_nodes=['MeSH_Compound:C56851
         with open(NODE_FEATURES_PATH) as f:
             # Set up iterator for a single node
             nodes_objects = ijson.items(f, returned_node)
-            node_object = next(nodes_objects)
+            node_object = next(nodes_objects, None)
             # If there is a names attribute, then use those
-            if 'names' in node_object.keys():
+            if node_object and 'names' in node_object.keys():
                 node_names[returned_node] = node_object['names']
             else:
                 node_names[returned_node] = ["No known names"]

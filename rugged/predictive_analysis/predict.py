@@ -10,25 +10,21 @@ from utils.logger import write_to_log
 from openai import OpenAI
 from langchain.chains import ConversationChain
 from langchain_openai import ChatOpenAI
-from config import OPENAI_KEY
-from config import NODE_FEATURES_PATH
-from config import PREDICTION_EXPLORER_PROMPT
-from config import PREDICTION_EXPLORER_EXAMPLE as EXAMPLE
+from rugged.agents import agent_loader
 
-from utils.utils import find_node_names, format_node_name
+from utils.utils import format_node_name
+from utils.neo4j_api.neo4j_utils import get_node_features, find_node_names # TODO remove find_node_names from general util class!!
+
+
+from config import REASONING_AGENT
 
 class PredictionExplorer:
-    def __init__(self, input_directory, node_features_file, log_file):
+    def __init__(self, input_directory, log_file):
         # Log file for writing program progress
         self.log_file = log_file
-        
-        #TODO use agent classes instead
+
         # LLM for reasoning the response
-        self.reasoner = ConversationChain(llm=ChatOpenAI(model_name="gpt-4o", openai_api_key=OPENAI_KEY))
-        self.r_index = 0 #TODO global reasoner and r_index
-        
-        # Node features file
-        self.node_features_file = node_features_file
+        self.reasoning_agent = agent_loader.load_reasoning_agent(REASONING_AGENT)
         
         # Precomputed prediction files
         self.input_directory = input_directory
@@ -106,8 +102,8 @@ class PredictionExplorer:
                     if e_normalized == parsed_tuple:
                         # Retrieve node features for the matched nodes
                         node1, node2 = parsed_tuple
-                        node1_features = self.get_node_features(node1)
-                        node2_features = self.get_node_features(node2)
+                        node1_features = get_node_features(node1) 
+                        node2_features = get_node_features(node2)
 
                         # Map the matched tuple to TSV, PDF, probability, and node features
                         result[parsed_tuple] = {
@@ -117,7 +113,6 @@ class PredictionExplorer:
                             'node1_features': node1_features, # Features of node1
                             'node2_features': node2_features  # Features of node2
                         }
-        
         return result
     
     
@@ -130,17 +125,7 @@ class PredictionExplorer:
                 return False
             else:
                 print("Invalid input. Please enter 'y' for yes, or 'n' for no.")
-    
-    #TODO move this code to utils to reduce redundancy
-    def get_node_features(self, node_id):
-        """Retrieve node features for a specific node from a flat JSON file."""
-        with open(self.node_features_file, 'r') as file:
-            # Iterate over the top-level keys and values in the JSON
-            for key, value in ijson.kvitems(file, ''):
-                if key == node_id:
-                    return value  
-        return None  # Return None if the node features are not found
-            
+               
         
     def get_input_directory(self):
         while True:
@@ -220,12 +205,11 @@ class PredictionExplorer:
                 match = match[:-1]
             matches[i] = match
         matches = list(set(matches))
-        
         names_matches = find_node_names(max_nodes_to_return=100, returned_nodes=matches)
         for m in matches:
-            m_features = names_matches[m]
-            formatted_m = format_node_name(m,m_features['names'])
-            formatted_text = formatted_text.replace(m,formatted_m)
+            formatted_m = self.get_node_name(m,names_matches)
+            if formatted_m[0] != "No known names":
+                formatted_text = formatted_text.replace(m,formatted_m[0])
         return formatted_text
 
         
@@ -278,8 +262,8 @@ class PredictionExplorer:
         print("\nWe have found the following explainable predictions based on the provided data:")
         for i, (key, value) in enumerate(matched_results.items(), 1):
             node1, node2 = key
-            node1_name = format_node_name(node1, node_to_node_features[node1]['names'])
-            node2_name = format_node_name(node2, node_to_node_features[node2]['names'])
+            node1_name = self.get_node_name(node1, node_to_node_features)
+            node2_name = self.get_node_name(node2, node_to_node_features)
             print(f"{i}) Prediction between '{node1_name}' and '{node2_name}' with a probability of {value['probability']:.2%}")
         
         # Ask the user which prediction to explore
@@ -294,8 +278,8 @@ class PredictionExplorer:
                     selected_key = list(matched_results.keys())[choice - 1]
                     # Format with the node names
                     node1,node2 = selected_key
-                    node1_name = format_node_name(node1, node_to_node_features[node1]['names'])
-                    node2_name = format_node_name(node2, node_to_node_features[node2]['names'])
+                    node1_name = self.get_node_name(node1, node_to_node_features)
+                    node2_name = self.get_node_name(node2, node_to_node_features)
                     formatted_nodes = node1_name, node2_name
                     return selected_key, matched_results[selected_key]
                 else:
@@ -303,47 +287,35 @@ class PredictionExplorer:
             except ValueError:
                 print("Invalid input. Please enter a number.")
                 
-                
-    # Move to reasoning agent
-    def prepare_prompt(self, user_query, nodes, prediction_results):
+    def get_node_name(self, node_id, node_to_node_features):
+        """ Retrieve the node's name from features or use the node_id if not found. """
+        assert isinstance(node_to_node_features, dict), "node_to_node_features must be a dictionary"
         
-        node1, node2 = nodes
-        prompt = BIAS_MITIGATION_PROMPT + '\n' + PREDICTION_EXPLORER_PROMPT.replace("[USER_QUERY]", user_query)
-        prompt = prompt.replace("[NODE1]",node1)
-        prompt = prompt.replace("[NODE2]",node2)
-        prompt = prompt.replace("[EXAMPLE]", EXAMPLE)
-        prompt = prompt.replace("[PREDICTION_RESULTS]", prediction_results)
-        return prompt
+        if node_id in node_to_node_features:
+            temp = node_to_node_features[node_id]
+            if isinstance(temp, list):
+                return temp  
+            elif 'names' in temp:
+                return temp['names']  
+            else:
+                return [node_id] 
+        else:
+            return [node_id]
 
-                               
-    # Move to reasoning agent
-    def reason(self, prompt):
-        
-        # Increment by one for invoke prompt
-        self.r_index += 1
-        self.reasoner.invoke(prompt)
-        
-        # Increment by one for response
-        self.r_index += 1
-        message = self.reasoner.memory.chat_memory.messages[self.r_index-1].content
-        
-        return message
-        
 
     def run(self, user_query):
         """Main function to execute the workflow."""
-        
         # Prompt the user to select a prediction
         formatted_nodes, selected_prediction = self.prompt_user_for_prediction(self.matched_results)
         
         # Prepare the prompt payload
         print("Processing input files...")
         supporting_information = self.format_prediction_details(formatted_nodes, selected_prediction)
-        prompt = self.prepare_prompt(user_query, formatted_nodes, supporting_information)
+        prompt = self.reasoning_agent.prepare_predict_prompt(user_query, formatted_nodes, supporting_information)
         
         # Send to Reasoner LLM Agent
         print("Sending query to reasoning agent...")
-        response = self.reason(prompt)
+        response = self.reasoning_agent.reason(prompt)
                     
         return response
 
