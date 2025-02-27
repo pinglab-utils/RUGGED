@@ -13,7 +13,7 @@ from langchain_openai import ChatOpenAI
 from rugged.agents import agent_loader
 
 from utils.utils import format_node_name
-from utils.neo4j_api.neo4j_utils import get_node_features, find_node_names # TODO remove find_node_names from general util class!!
+from utils.neo4j_api.neo4j_utils import get_node_features, find_node_names 
 
 
 from config import REASONING_AGENT
