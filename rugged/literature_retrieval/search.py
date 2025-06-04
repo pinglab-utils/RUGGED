@@ -7,66 +7,61 @@ import ijson
 from fuzzywuzzy import fuzz
 from tqdm import tqdm
 
-from config import OPENAI_KEY
 from config import LITERATURE_RETRIEVAL_PROMPT
 from config import LITERATURE_RETRIEVAL_EXAMPLE as EXAMPLE
+from config import REASONING_AGENT, TEXT_EVALUATOR_AGENT
 
+from rugged.agents import agent_loader
 from utils.logger import write_to_log
-from openai import OpenAI
-from langchain.chains import ConversationChain
-from langchain_openai import ChatOpenAI
-from config import OPENAI_KEY
-from config import NODE_FEATURES_PATH
-
-from transformers import BartTokenizer, BartForConditionalGeneration
 
 class LiteratureSearch:
 
-    def __init__(self, user_query, convo_summary, log_file, corpus='./data/text_corpus/pubmed.json', full_text_file = './data/pmid2fulltext_sections.json'):
+    def __init__(self, user_query, conversation_summary, log_file, corpus='./data/text_corpus/pubmed.json',
+                 full_text_file = './data/pmid2fulltext_sections.json'):
         self.name = "Literature Search"
         
         self.user_query = user_query
-        self.convo_summary = convo_summary
+        self.conversation_summary = conversation_summary
         
         self.corpus = corpus
-        
-        #TODO use agent classes instead
-        # LLM for reasoning and evaluating the response
-        self.search_evaluator = ConversationChain(llm=ChatOpenAI(model_name="gpt-4o", openai_api_key=OPENAI_KEY))
-        self.reasoner = ConversationChain(llm=ChatOpenAI(model_name="gpt-4o", openai_api_key=OPENAI_KEY))
-        self.e_index = 0
-        self.r_index = 0 
-        
-        
-        #TODO move to TextEvaluatorAgent
-        # Text summarizer
-        model_name = 'facebook/bart-large-cnn'
-        self.tokenizer = BartTokenizer.from_pretrained(model_name)
-        self.summarizer_model = BartForConditionalGeneration.from_pretrained(model_name)
+       
+        # LLM for evaluating the response
+        self.text_evaluator_agent = agent_loader.load_text_evaluator_agent(TEXT_EVALUATOR_AGENT)
 
+        # LLM for reasoning the response
+        self.reasoning_agent = agent_loader.load_reasoning_agent(REASONING_AGENT)
+       
+
+    def retrieve_documents(self, kw1, kw2, MAX_PUBS=10, TIMEOUT=60mins):
         
-    def retrieve_documents(self, kw1, kw2):
-        
-        # Perform key-word based search
-        pmid_list=self.search_keywords_in_corpus(self.corpus, kw1, kw2)
+        # Perform key-word based search TODO have it randomly search the corpus until max number found, change this to a while loop
+        pmid_list = self.search_keywords_in_corpus(self.corpus, kw1, kw2)
         print(pmid_list)
         
         # Determine which are what kind of publication.
         original_research_contributions, clinical_case_reports = self.get_pmids(pmid_list, self.corpus)
         
-        # Perform literature checker agent
+        # Get full text of publications
+        #TODO
+
+        # Perform literature verification
         filtered_orc = self.original_research_contributions(original_research_contributions)
         filtered_ccr = self.original_research_contributions(clinical_case_reports)
         
-        # Perform FAISS search only on original research contributions
-        faiss_docs = self.faiss_search_in_corpus()
-        filtered_faiss = self.original_research_contributions(faiss_docs)
+        if len(filtered_orc) > MAX_PUBS:
+
+            # Use FAISS to identify most relevant pubs
+        # TODO FAISS crashes for some corpra, fix this!
+        ## Perform FAISS search only on original research contributions
+        #faiss_docs = self.faiss_search_in_corpus()
+        #filtered_faiss = self.original_research_contributions(faiss_docs)
         
-        # Combine orc docs
-        orc_docs = filtered_faiss.update(filtered_orc)
+        ## Combine orc docs
+        #orc_docs = filtered_faiss.update(filtered_orc)
         
         # Combine as text block
-        docs_to_return = f"Original Research Articles: {orc_docs}\n\nClinical Case Reports: {filtered_ccr}"
+        #docs_to_return = f"Original Research Articles: {orc_docs}\n\nClinical Case Reports: {filtered_ccr}"
+        docs_to_return = f"Original Research Articles: {filtered_orc}\n\nClinical Case Reports: {filtered_ccr}"
         
         return docs_to_return
         
@@ -85,45 +80,6 @@ class LiteratureSearch:
         return orc_docs, ccr_docs
     
     
-    #TODO move to TextEvaluatorAgent
-    def verify_literature(self, docs):
-        literature_verification_prompt = f"Are the following documents relevant to the user query? Do not explain how they are relevant, only provide a list of PMIDs which are NOT relevant (e.g., 'The following are not relevant to the user query: 123456, 098765'). User query: {self.user_query}\nDocuments: {str(docs)}"
-        self.search_evaluator.invoke(literature_verification_prompt)
-        self.e_index += 2
-        response = self.query_evaluator.memory.chat_memory.messages[self.qe_index].content
-        relevant_pmids = [r.strip() for r in response.split(":")[1].split(",")]
-        relevant_docs = []
-        for d in docs:
-            if d['PMID'] in relevant_pmids:
-                relevant_docs += [d]
-        return relevant_docs
-        
-    
-    #TODO move to reasoning_agent    
-    def prepare_prompt(self):
-        prompt = LITERATURE_RETRIEVAL_PROMPT.replace("[USER_QUESTION]",self.user_query)
-        prompt = prompt.replace("[SUMMARY_OF_CONVERSAION]",self.convo_summary)
-        prompt = prompt.replace("[DOCUMENTS]",self.documents)
-        prompt = prompt.replace("[EXAMPLE]",EXAMPLE)
-        self.prompt = prompt
-        
-    
-    #TODO encapsulate the code from query.py to reduce redundancies  
-    def identify_keywords(self):
-        #TODO extract keywords with entity matching from user question and conversation history
-        keyword_set_1 = {'metoprolol': ['Kapspargo', 'Lopressor', 'Lopressor Hct', 'Toprol']}
-        keyword_set_2 = {
-            'Arrhythmogenic Cardiomyopathy': ['Arrhythmogenic Right Ventricular Dysplasia', 
-                                              'Arrhythmogenic Right Ventricular Cardiomyopathy-Dysplasia', 
-                                              'Arrhythmogenic Right Ventricular Cardiomyopathy Dysplasia', 
-                                              'ARVD-C', 'Arrhythmogenic Right Ventricular Cardiomyopathy', 
-                                              'Ventricular Dysplasia, Right, Arrhythmogenic', 
-                                              'Arrhythmogenic Right Ventricular Dysplasia-Cardiomyopathy', 
-                                              'Right Ventricular Dysplasia, Arrhythmogenic']
-        }
-        return keyword_set_1, keyword_set_2
-  
-    
     def read_large_json(self, file_path):
         with open(file_path, 'r') as file:
             for line in file:
@@ -132,6 +88,7 @@ class LiteratureSearch:
                     yield json_obj
                 except json.JSONDecodeError as e:
                     print(f"Error decoding JSON: {e}")
+
 
     def fuzzy_keyword_in_text(self, keywords, text, threshold=80):
         if text is None:
@@ -146,6 +103,7 @@ class LiteratureSearch:
 
     
     def search_keywords_in_corpus(self, file_path, keyword_set_1, keyword_set_2):
+        # TODO change to ElasticSearch for better performance
         pmids = []
         line_count = 0
 
@@ -161,6 +119,7 @@ class LiteratureSearch:
             if not title and not abstract:
                 continue
                 
+            # Fuzzy keyword search in case of mispelling or formatting difference
             if self.fuzzy_keyword_in_text(keyword_set_1, text) and self.fuzzy_keyword_in_text(keyword_set_2, text):
                 pmids.append(pmid)
                 print(pmid)
@@ -170,54 +129,24 @@ class LiteratureSearch:
                 print(f"Processed {line_count} documents...", end='\r')
 
         return pmids
-    
-    #TODO move to TextEvaluatorAgent
-    def summarize_section(text):
-        inputs = self.tokenizer.encode("summarize: " + text, return_tensors="pt", max_length=1024, truncation=True)
-        summary_ids = self.summarizer_model.generate(inputs, max_length=200, min_length=40, length_penalty=2.0, num_beams=4, early_stopping=True)
-        summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
-        return self.clean_summary(summary)  # Clean each summary
-
-    #TODO move to TextEvaluatorAgent
-    def clean_summary(text):
-        # Remove any unwanted text patterns
-        cleaned_text = text.replace("Summarize: ", "")
-        cleaned_text = cleaned_text.replace("summarize: ", "")
-        # Additional cleanup rules can be added here
-        return cleaned_text
 
 
-    #TODO move to TextEvaluatorAgent
-    def summarize_long_document(text, chunk_size=500):
-        words = text.split()
-        chunks = [' '.join(words[i:i + chunk_size]) for i in range(0, len(words), chunk_size)]
-        summaries = [self.summarize_section(chunk) for chunk in chunks]
-        combined_summary = ' '.join(summaries)
-        return combined_summary
-    
-    
-    #TODO move to TextEvaluatorAgent
-    def prepare_prompt(self):
-        prompt = BIAS_MITIGATION_PROMPT + '\n' + LITERATURE_RETRIEVAL_PROMPT.replace("[USER_QUERY]", self.user_query)
-        prompt = prompt.replace("[SUMMARY_OF_CONVERSAION]", self.convo_summary)
-        prompt = prompt.replace("[DOCUMENTS]", str(self.documents))
-        return prompt
+    def identify_keywords(self):
+        # TODO replace w the one from Joseph
+        pmid_list = ["34412508", "27939893", "34650309", "14663615", "23937302", "2463576"] 
+        keyword_set_1 = {'metoprolol': ['Kapspargo', 'Lopressor', 'Lopressor Hct', 'Toprol']}
+        keyword_set_2 = {
+            'Arrhythmogenic Cardiomyopathy': ['Arrhythmogenic Right Ventricular Dysplasia', 
+                                              'Arrhythmogenic Right Ventricular Cardiomyopathy-Dysplasia', 
+                                              'Arrhythmogenic Right Ventricular Cardiomyopathy Dysplasia', 
+                                              'ARVD-C', 'Arrhythmogenic Right Ventricular Cardiomyopathy', 
+                                              'Ventricular Dysplasia, Right, Arrhythmogenic', 
+                                              'Arrhythmogenic Right Ventricular Dysplasia-Cardiomyopathy', 
+                                              'Right Ventricular Dysplasia, Arrhythmogenic']
+        }
+        return keyword_set_1, keyword_set_2
+  
 
-                 
-    #TODO move to reasoning_agent                   
-    def reason(self, prompt):
-        
-        # Increment by one for invoke prompt
-        self.r_index += 1
-        self.reasoner.invoke(prompt)
-        
-        # Increment by one for response
-        self.r_index += 1
-        message = self.reasoner.memory.chat_memory.messages[self.r_index-1].content
-        
-        return message
-        
-        
     def run(self):
         print("Performing Literature Retrieval...")
         
@@ -225,15 +154,15 @@ class LiteratureSearch:
         kw1, kw2 = self.identify_keywords()
         print(kw1)
         print(kw2)
-        #TODO user confirmation with timeout?
+        #TODO Add user confirmation with timeout, to allow the user to correct keywords
               
         print("Retrieving documents...")
         self.documents = self.retrieve_documents(kw1, kw2)
         
         print("Preparing prompt...")
-        prompt = self.prepare_prompt()
+        prompt = reasoning_agent.prepare_search_prompt(self.conversation_summary, self.documents)
         print("Sending query to reasoning agent...")
-        response = self.reason(prompt)
+        response = reasoning_agent.reason(prompt)
         
-        return response
+        return response<F2>
     

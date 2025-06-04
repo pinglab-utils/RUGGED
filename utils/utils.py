@@ -1,7 +1,6 @@
-from pathlib import Path
 import re
 import json
-
+from pathlib import Path
 
 def extract_code(response: str):
     code_blocks = re.findall(r'```(.*?)```', response, re.DOTALL)
@@ -21,38 +20,38 @@ def format_node_name(node_id, node_names):
         return f"{node_id} ({node_names[0]})"
     return f"{node_names[0]} ({node_id})"
 
-# TODO is this in neo4j util class?
-def extract_results(query: str, driver ,is_json=False):
-    nodes = driver.query_database(query)
-
-    # Set up the regex
-    node_names = ["MeSH_Compound", "Entrez", "UniProt", "Reactome_Reaction", "MeSH_Tree_Disease", "MeSH_Disease",
-                  "Reactome_Pathway", "MeSH_Anatomy", "cellular_component", "molecular_function", "MeSH_Tree_Anatomy",
-                  "ATC", "DrugBank_Compound", "KEGG_Pathway", "biological_process"]
-    node_finder_pattern = r'(\b(?:' + '|'.join(map(re.escape, node_names)) + r')\S*)'
-
-    # Check if json returned an invalid or valid object
-    if is_json:
-        try:
-            string_json_nodes = json.dumps(nodes)
-        except:
-            return {}
-        matches = re.compile(node_finder_pattern).findall(string_json_nodes)
-    else:
-        matches = re.compile(node_finder_pattern).findall(str(nodes))
-
-    # Clean up results
-    replace_chars = ['{', '}', '\'', '\"', '[', ']', ',', '(', ')']
-    print('MATCHES BEFORE CLEAN UP:', matches)
-    for i, match in enumerate(matches):
-        print(match)
-        for char in replace_chars:
-            match = match.replace(char, "")
-        matches[i] = match
-    # Take set
-    print('MATCHES:', matches)
-
-    return find_node_names(returned_nodes=list(set(matches)))
+## TODO is this in neo4j util class?
+#def extract_results(query: str, driver ,is_json=False):
+#    nodes = driver.query_database(query)
+#
+#    # Set up the regex
+#    node_names = ["MeSH_Compound", "Entrez", "UniProt", "Reactome_Reaction", "MeSH_Tree_Disease", "MeSH_Disease",
+#                  "Reactome_Pathway", "MeSH_Anatomy", "cellular_component", "molecular_function", "MeSH_Tree_Anatomy",
+#                  "ATC", "DrugBank_Compound", "KEGG_Pathway", "biological_process"]
+#    node_finder_pattern = r'(\b(?:' + '|'.join(map(re.escape, node_names)) + r')\S*)'
+#
+#    # Check if json returned an invalid or valid object
+#    if is_json:
+#        try:
+#            string_json_nodes = json.dumps(nodes)
+#        except:
+#            return {}
+#        matches = re.compile(node_finder_pattern).findall(string_json_nodes)
+#    else:
+#        matches = re.compile(node_finder_pattern).findall(str(nodes))
+#
+#    # Clean up results
+#    replace_chars = ['{', '}', '\'', '\"', '[', ']', ',', '(', ')']
+#    print('MATCHES BEFORE CLEAN UP:', matches)
+#    for i, match in enumerate(matches):
+#        print(match)
+#        for char in replace_chars:
+#            match = match.replace(char, "")
+#        matches[i] = match
+#    # Take set
+#    print('MATCHES:', matches)
+#
+#    return find_node_names(returned_nodes=list(set(matches)))
 
 # Redundant function, seems to be in neo4j util class now
 # def find_node_names(max_nodes_to_return=100, returned_nodes=['MeSH_Compound:C568512', 'molecular_function:0140775', 'MeSH_Tree_Disease:C17.800.893.592.450.200'], debug=False):

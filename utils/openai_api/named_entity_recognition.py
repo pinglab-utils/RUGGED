@@ -45,13 +45,13 @@ class NamedEntityRecognition():
 
         return cleaned_results
 
-    def get_similar_graph_node(self, word):
-        """
-        Method to get the node names for each entity.
-
-        Returns a list of supposedly related nodes based off of embeddings.
-        """
-        return self.rag.query(word)
+#    def get_similar_graph_node(self, word):
+#        """
+#        Method to get the node names for each entity.
+#
+#        Returns a list of supposedly related nodes based off of embeddings.
+#        """
+#        return self.rag.query(word)
 
     def get_context(self, text):
         # Get all entities
@@ -61,13 +61,13 @@ class NamedEntityRecognition():
         bert_res = self.biobertner.get_entities(text)
         all_ents = spacy_res + bert_res
         cleaned_ents = self.clean_results(all_ents)
-
+        return cleaned_ents
         # Define context
-        context = dict()
-        for ent in cleaned_ents:
-            context[ent] = self.get_similar_graph_node(ent)
+        #context = dict()
+        #for ent in cleaned_ents:
+        #    context[ent] = self.get_similar_graph_node(ent)
 
-        return context
+        #return context
 
 
 if __name__ == "__main__":

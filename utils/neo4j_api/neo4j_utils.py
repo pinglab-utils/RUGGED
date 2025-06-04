@@ -71,9 +71,7 @@ def find_node_names(max_nodes_to_return=5, returned_nodes=['MeSH_Compound:C56851
     return node_names
 
 
-def extract_results(query: str, is_json=False):
-    # Initalize the driver
-    driver = Driver()
+def extract_results(query: str, driver, is_json=False):
     nodes = driver.query_database(query)
 
     # Set up the regex
@@ -103,4 +101,5 @@ def extract_results(query: str, is_json=False):
     # Take set
     print('MATCHES:', matches)
 
-    return find_node_names(returned_nodes=list(set(matches)))
+    node_features = find_node_names(returned_nodes=list(set(matches)))
+    return matches, node_features

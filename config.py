@@ -53,6 +53,7 @@ NODE_FEATURES_PATH = neo4j_config.get("NODE_FEATURES_PATH",os.path.join(project_
 NODE_TYPES_PATH = neo4j_config.get("NODE_TYPES_PATH",  os.path.join(project_root, "data/knowledge_graph/node_types.txt"))
 EDGE_TYPES_PATH = neo4j_config.get("EDGE_TYPES_PATH", os.path.join(project_root, "data/knowledge_graph/edge_types.txt"))
 QUERY_EXAMPLES = neo4j_config.get("QUERY_EXAMPLES", os.path.join(project_root, "data/query_examples.txt"))
+KG_FAISS_INDEX = neo4j_config.get("KG_FAISS_INDEX", os.path.join(project_root, "data/knowledge_graph/kg_index"))
 
 # LLM Agent config
 REASONING_AGENT = agents_config.get("REASONING_AGENT","")
@@ -62,11 +63,16 @@ QUERY_VERIFICATION_AGENT  = agents_config.get("QUERY_VERIFICATION_AGENT","")
 
 # Prompt tuning config
 BIAS_MITIGATION_PROMPT = prompts_config.get("BIAS_MITIGATION_PROMPT","")
-QUERY_PROMPT = prompts_config.get("QUERY_PROMPT","")
+CYPHER_QUERY_FIRST_PROMPT_INSTRUCTIONS = prompts_config.get("CYPHER_QUERY_FIRST_PROMPT_INSTRUCTIONS","")
+CYPHER_QUERY_REVISION_PROMPT_INSTRUCTIONS = prompts_config.get("CYPHER_QUERY_REVISION_PROMPT_INSTRUCTIONS","")
+QUERY_VERIFICATION_AGENT_PROMPT = prompts_config.get("QUERY_REASONING_PROMPT","")
+QUERY_REASONING_PROMPT = prompts_config.get("QUERY_REASONING_PROMPT","")
 PREDICTION_EXPLORER_PROMPT = prompts_config.get("PREDICTION_EXPLORER_PROMPT","")
 PREDICTION_EXPLORER_EXAMPLE = prompts_config.get("PREDICTION_EXPLORER_EXAMPLE","")
+LITERATURE_VALIDATION_PROMPT = prompts_config.get("LITERATURE_VALIDATION_PROMPT","")
 LITERATURE_RETRIEVAL_PROMPT = prompts_config.get("LITERATURE_RETRIEVAL_PROMPT","")
 LITERATURE_RETRIEVAL_EXAMPLE = prompts_config.get("LITERATURE_RETRIEVAL_EXAMPLE","")
+
 
 # Ollama and KoboldAI Configuration
 OLLAMA_URI = ollama_config.get("OLLAMA_URI", None)

@@ -16,7 +16,7 @@ class TestOllama(unittest.TestCase):
     def test_ollama_api_call(self):
         user_input = "Test user input"
 
-        llm = Ollama(model="llama2", base_url=OLLAMA_URI)
+        llm = Ollama(model="llama3", base_url=OLLAMA_URI)
 
         response = llm.invoke(user_input)
         self.assertIsNotNone(response, "Ollama API response should not be None")

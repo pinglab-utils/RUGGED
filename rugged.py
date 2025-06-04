@@ -1,5 +1,7 @@
 import os
 import sys
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
 from utils.utils import get_project_root
 from utils.logger import get_log_file, write_to_log  
 

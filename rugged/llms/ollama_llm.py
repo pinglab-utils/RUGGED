@@ -1,13 +1,16 @@
 from .base_llm import BaseLLM
 from langchain.chains import ConversationChain
-from langchain_ollama.llms import OllamaLLM as ollama_llm
-from config import OLLAMA_URI, OLLAMA_MODEL
+from langchain_ollama import ChatOllama as ollama_llm
+#from langchain_ollama.llms import OllamaLLM as ollama_llm
+#from config import OLLAMA_URI, OLLAMA_MODEL
+from config import OLLAMA_URI
 
 class OllamaLLM(BaseLLM):
     def __init__(self):
         # Initialize Ollama model 
-        model = ollama_llm(model=model_name, base_url=OLLAMA_URI)
-        self.llm = ConversationChain(llm=OLLAMA_MODEL)
+        OLLAMA_MODEL="Llama3" #TODO temp
+        model = ollama_llm(model=OLLAMA_MODEL, base_url=OLLAMA_URI)
+        self.llm = ConversationChain(llm=model)
         self.index = 0
         #TODO make a function to check if the specified model is downloaded, then download it if not.
     
