@@ -6,7 +6,6 @@ import unittest
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
 from rugged.agents import agent_loader
-from config import REASONING_AGENT, TEXT_EVALUATOR_AGENT, CYPHER_QUERY_AGENT, QUERY_VERIFICATION_AGENT
 
 class TestLLMs(unittest.TestCase):
 

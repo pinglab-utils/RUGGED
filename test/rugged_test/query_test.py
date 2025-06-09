@@ -19,17 +19,15 @@ def main():
         print("Crafting query...")
         success, cypher_query = qs.create_query(question)
         print(cypher_query)
-
-        #print("Accessing information...")
-        #query_results, node_features = qs.retrieve_graph(cypher_query)
-        #print(query_results)
-        #print(node_features)
         
-        #print("Generating response...")
-        #prompt = qs.prepare_prompt(question, cypher_query, query_results, node_features)
-        #print(prompt)
-        #response = qs.generate_response(question)
-        #print(response)
+        print("Accessing information...")
+        query_results, node_features = qs.retrieve_graph(cypher_query)
+        print(query_results)
+        print(node_features)
+        
+        print("Generating response...")
+        response = qs.evaluate_results(question, cypher_query, query_results, node_features)
+        print(response)
 
     except Exception as e:
         print(f"An error occurred: {str(e)}")

@@ -56,7 +56,7 @@ class CypherQueryAgent:
 	
 		# Create instruction prompt for Cypher Query Agent
 		example_node = "MATCH (p1:Entrez {name: 'Entrez:1756'})"
-		initial_query_prompt = FIRST_PROMPT_INSTRUCTIONS.format(
+		initial_query_prompt = CYPHER_QUERY_FIRST_PROMPT_INSTRUCTIONS.format(
 			QUESTION=self.user_query,
 			CONTEXT=context,
 			EXAMPLE_NODE=example_node
@@ -71,10 +71,10 @@ class CypherQueryAgent:
 
 	def revise_query(self, cypher_query, response):
 		# Create instruction prompt for revising Cypher query
-		revision_query_prompt = REVISION_PROMPT_INSTRUCTIONS.format(
+		revision_query_prompt = CYPHER_QUERY_REVISION_PROMPT_INSTRUCTIONS.format(
 		  QUESTION=self.user_query,
 		  ORIGINAL_QUERY=cypher_query,
-		  VERIFIER_RESPONSE=verifier_response
+		  VERIFIER_RESPONSE=response
 		)
 
 		# Call the LLM to generate revised Cypher query

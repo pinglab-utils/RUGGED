@@ -12,12 +12,13 @@ def main():
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
     input_directory = os.path.join(base_dir, 'output')
     log_file = os.path.join(base_dir, 'log', 'test_log.txt')
-    corpus = os.path.join(base_dir, 'data', 'text_corpus','test_corpus.json')
-    
-    question = 'What drugs are currently being prescribed to treat Arrhythmogenic Cardiomyopathy?'
+    corpus = os.path.join(base_dir, 'data', 'text_corpus', 'test_corpus.json')
+    full_text_file = os.path.join(base_dir, 'data', 'text_corpus', 'test_full_text.json')
+
+    question = 'Which documents are related to using beta-blockers to treat cardiovascular disease?'
     context = 'This is a test class, testing functionality of this part of the program.'
     try:
-        ls = LiteratureSearch(question, context, log_file, corpus=corpus)
+        ls = LiteratureSearch(question, context, log_file, corpus=corpus, full_text_file=full_text_file)
         response = ls.run()
         print(response)
     except Exception as e:

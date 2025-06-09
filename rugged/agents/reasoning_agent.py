@@ -1,6 +1,7 @@
 from ..llms.base_llm import BaseLLM
 from config import PREDICTION_EXPLORER_PROMPT, BIAS_MITIGATION_PROMPT
 from config import PREDICTION_EXPLORER_EXAMPLE, LITERATURE_RETRIEVAL_EXAMPLE
+from config import QUERY_REASONING_PROMPT
 
 class ReasoningAgent:
     def __init__(self, llm: BaseLLM):
@@ -25,6 +26,14 @@ class ReasoningAgent:
         prompt = prompt.replace("[EXAMPLE]", LITERATURE_RETRIEVAL_EXAMPLE)
         return prompt
 
+
+    def prepare_query_prompt(self, user_query, cypher_query, query_results, node_features):
+        prompt = BIAS_MITIGATION_PROMPT + '\n' + QUERY_REASONING_PROMPT.replace("[USER_QUERY]", user_query)
+        prompt = prompt.replace("[QUERY_RESULTS]",query_results)
+        prompt = prompt.replace("[NODE_FEATURES]", str(node_features))
+        prompt = prompt.replace("[CYPHER_QUERY]", cypher_query)
+        return prompt
+    
 
     # Call the LLM to reason based on the prompt
     def reason(self, prompt):

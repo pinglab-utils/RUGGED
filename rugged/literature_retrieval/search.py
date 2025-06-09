@@ -13,70 +13,56 @@ from config import REASONING_AGENT, TEXT_EVALUATOR_AGENT
 
 from rugged.agents import agent_loader
 from utils.logger import write_to_log
+from utils.openai_api.named_entity_recognition import NamedEntityRecognition
 
 class LiteratureSearch:
 
     def __init__(self, user_query, conversation_summary, log_file, corpus='./data/text_corpus/pubmed.json',
-                 full_text_file = './data/pmid2fulltext_sections.json'):
+                 full_text_file = './data/textpmid2fulltext_sections.json', query_only=False):
         self.name = "Literature Search"
         
         self.user_query = user_query
         self.conversation_summary = conversation_summary
+        self.ner = NamedEntityRecognition()
         
         self.corpus = corpus
+        self.full_text_file = full_text_file
        
-        # LLM for evaluating the response
-        self.text_evaluator_agent = agent_loader.load_text_evaluator_agent(TEXT_EVALUATOR_AGENT)
+        # Skip LLM instatiation if using literature search query only
+        if not query_only:
+            # LLM for evaluating the response
+            self.text_evaluator_agent = agent_loader.load_text_evaluator_agent(TEXT_EVALUATOR_AGENT)
 
-        # LLM for reasoning the response
-        self.reasoning_agent = agent_loader.load_reasoning_agent(REASONING_AGENT)
+            # LLM for reasoning the response
+            self.reasoning_agent = agent_loader.load_reasoning_agent(REASONING_AGENT)
        
 
-    def retrieve_documents(self, kw1, kw2, MAX_PUBS=10, TIMEOUT=60mins):
-        
-        # Perform key-word based search TODO have it randomly search the corpus until max number found, change this to a while loop
-        pmid_list = self.search_keywords_in_corpus(self.corpus, kw1, kw2)
-        print(pmid_list)
-        
-        # Determine which are what kind of publication.
-        original_research_contributions, clinical_case_reports = self.get_pmids(pmid_list, self.corpus)
-        
-        # Get full text of publications
-        #TODO
+    def identify_keywords(self):
+        keywords = self.ner.get_context(self.user_query)
+        return keywords
 
-        # Perform literature verification
-        filtered_orc = self.original_research_contributions(original_research_contributions)
-        filtered_ccr = self.original_research_contributions(clinical_case_reports)
-        
-        if len(filtered_orc) > MAX_PUBS:
 
-            # Use FAISS to identify most relevant pubs
-        # TODO FAISS crashes for some corpra, fix this!
-        ## Perform FAISS search only on original research contributions
-        #faiss_docs = self.faiss_search_in_corpus()
-        #filtered_faiss = self.original_research_contributions(faiss_docs)
-        
-        ## Combine orc docs
-        #orc_docs = filtered_faiss.update(filtered_orc)
-        
-        # Combine as text block
-        #docs_to_return = f"Original Research Articles: {orc_docs}\n\nClinical Case Reports: {filtered_ccr}"
-        docs_to_return = f"Original Research Articles: {filtered_orc}\n\nClinical Case Reports: {filtered_ccr}"
-        
-        return docs_to_return
-        
-        
     def get_pmids(self, pmids, pubmed_file):
         ''' Only return original research contribution and clinical case report documents '''
         orc_docs = []
         ccr_docs = []
+        all_pmids = []
+        missing_publication_type=False
         for json_object in self.read_large_json(pubmed_file):
             pmid = json_object.get('PMID', None)
             if pmid in pmids:
-                if pmid['PublicationType'] == "Original Contribution":
+                if 'PublicationType' not in json_object.keys():
+                    # Catch error if missing publication type
+                    missing_publication_type = True
+                elif json_object['PublicationType'] == "Original Contribution":
                     orc_docs += [json_object]
-                elif pmid['PublicationType'] == "ClinicalCaseReport":
+                elif json_object['PublicationType'] == "ClinicalCaseReport":
                     ccr_docs += [json_object]
+                all_pmids += [json_object]
+        if missing_publication_type and len(orc_docs) == 0 and len(ccr_docs) == 0:
+            # Report the field is missing for all pmids and return full list
+            print("WARNING: PublicationType field is missing. Full PMID list is returned")
+            return all_pmids, all_pmids
         return orc_docs, ccr_docs
     
     
@@ -93,6 +79,10 @@ class LiteratureSearch:
     def fuzzy_keyword_in_text(self, keywords, text, threshold=80):
         if text is None:
             return False
+        if type(keywords) is str:
+            return fuzz.partial_ratio(keywords, text) >= threshold
+        
+        # Merge synonyms list
         text = text.lower()
         for keyword, synonyms in keywords.items():
             all_terms = [keyword.lower()] + [synonym.lower() for synonym in synonyms]
@@ -102,7 +92,7 @@ class LiteratureSearch:
         return False
 
     
-    def search_keywords_in_corpus(self, file_path, keyword_set_1, keyword_set_2):
+    def search_keywords_in_corpus(self, keywords, file_path):
         # TODO change to ElasticSearch for better performance
         pmids = []
         line_count = 0
@@ -120,10 +110,10 @@ class LiteratureSearch:
                 continue
                 
             # Fuzzy keyword search in case of mispelling or formatting difference
-            if self.fuzzy_keyword_in_text(keyword_set_1, text) and self.fuzzy_keyword_in_text(keyword_set_2, text):
-                pmids.append(pmid)
-                print(pmid)
-                print(json.dumps(json_object, indent=2))  # Print the matching json_object
+            for kw in keywords:
+                if self.fuzzy_keyword_in_text(kw, text):
+                    pmids.append(pmid)
+                    break
 
             if line_count % 100 == 0:
                 print(f"Processed {line_count} documents...", end='\r')
@@ -131,38 +121,72 @@ class LiteratureSearch:
         return pmids
 
 
-    def identify_keywords(self):
-        # TODO replace w the one from Joseph
-        pmid_list = ["34412508", "27939893", "34650309", "14663615", "23937302", "2463576"] 
-        keyword_set_1 = {'metoprolol': ['Kapspargo', 'Lopressor', 'Lopressor Hct', 'Toprol']}
-        keyword_set_2 = {
-            'Arrhythmogenic Cardiomyopathy': ['Arrhythmogenic Right Ventricular Dysplasia', 
-                                              'Arrhythmogenic Right Ventricular Cardiomyopathy-Dysplasia', 
-                                              'Arrhythmogenic Right Ventricular Cardiomyopathy Dysplasia', 
-                                              'ARVD-C', 'Arrhythmogenic Right Ventricular Cardiomyopathy', 
-                                              'Ventricular Dysplasia, Right, Arrhythmogenic', 
-                                              'Arrhythmogenic Right Ventricular Dysplasia-Cardiomyopathy', 
-                                              'Right Ventricular Dysplasia, Arrhythmogenic']
-        }
-        return keyword_set_1, keyword_set_2
-  
+    def retrieve_full_text(self, pmids):
+        # TODO check if full text file is available
+
+        # Extract PMIDs from the json files
+        pmid_set = set([p['PMID'] for p in pmids])
+
+        # Extract full text where available
+        matched_full_text = {}
+        with open(self.full_text_file, 'r', encoding='utf-8') as f1:
+            # ijson.kvitems parses top-level key-value pairs
+            for pmid_key, entry in ijson.kvitems(f1, ''):
+                if pmid_key in pmid_set:
+                    matched_full_text[pmid_key] = entry
+        
+        # Append full text to json object
+        ret_pmids = []
+        for p in pmids:
+            pmid = p['PMID']
+            if pmid in matched_full_text:
+                p['full_text'] = matched_full_text[pmid]
+            else:
+                p['full_text'] = "Not available"
+            ret_pmids += [p]
+        return ret_pmids
+
+
+    def retrieve_documents(self, keywords, TIMEOUT=3600): 
+        # Default timeout is 60 mins
+        '''
+        TODO: search batches of the corpus, e.g. 1000 at a time, until TIMEOUT is reached.
+        '''
+        
+        # Perform key-word based search 
+        pmid_list = self.search_keywords_in_corpus(keywords, self.corpus)
+        print(pmid_list)
+        
+        # Determine which are what kind of publication.
+        original_research_contributions, clinical_case_reports = self.get_pmids(pmid_list, self.corpus)
+        
+        # Get full text of publications
+        orc_full_text = self.retrieve_full_text(original_research_contributions) 
+        ccr_full_text = self.retrieve_full_text(clinical_case_reports)
+
+        return orc_full_text, ccr_full_text
+
 
     def run(self):
         print("Performing Literature Retrieval...")
         
         print("Identifying keywords based on query...")
-        kw1, kw2 = self.identify_keywords()
-        print(kw1)
-        print(kw2)
+        keywords = self.identify_keywords()
+        print(keywords)
         #TODO Add user confirmation with timeout, to allow the user to correct keywords
               
         print("Retrieving documents...")
-        self.documents = self.retrieve_documents(kw1, kw2)
+        original_research_contributions, clinical_case_reports = self.retrieve_documents(keywords)
+        
+        print("Verifying documents...")
+        filtered_orc = self.text_evaluator_agent.validate_literature(self.user_query, original_research_contributions)
+        filtered_ccr = self.text_evaluator_agent.validate_literature(self.user_query, clinical_case_reports)
+        documents = list(set(filtered_orc + filtered_ccr))
         
         print("Preparing prompt...")
-        prompt = reasoning_agent.prepare_search_prompt(self.conversation_summary, self.documents)
+        prompt = self.reasoning_agent.prepare_search_prompt(self.conversation_summary, documents)
         print("Sending query to reasoning agent...")
-        response = reasoning_agent.reason(prompt)
+        response = self.reasoning_agent.reason(prompt)
         
-        return response<F2>
+        return response
     
