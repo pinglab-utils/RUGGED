@@ -2,10 +2,12 @@ import os
 import sys
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 from utils.utils import get_project_root
 from utils.logger import get_log_file, write_to_log  
 
-from rugged.knowledge_graph.query import Chat
+from rugged.knowledge_graph.query import QuerySystem
 from rugged.predictive_analysis.predict import PredictionExplorer
 from rugged.literature_retrieval.search import LiteratureSearch
 
@@ -22,8 +24,9 @@ class RuggedSystem:
         self.convo_file = convo_file
         
         # Initialize modules
+        print("Starting RUGGED Modules. If this is your first time running the program, model downloads could take a few moments...")
         print("Loading QuerySystem")
-        qs = QuerySystem()
+        qs = QuerySystem(self.log_file)
         print("Loading PredictionExplorer")
         pe = PredictionExplorer(self.input_directory, self.log_file)
         print("Loading LiteratureSearch")
@@ -76,7 +79,7 @@ class RuggedSystem:
             print(f"An error occurred: {str(e)}")
 
         
-    def summary_conversation(self):
+    def summary_conversation(self, out_file=None):
         """ Summarizes the conversation between User and RUGGED so far """
         try:
             with open(self.convo_file, 'r') as file:
@@ -89,6 +92,14 @@ class RuggedSystem:
             return ""  
         
         convo_summary = self.ls.summarize_long_document(convo_text)
+        
+        # Save to out_file if specified
+        if out_file:
+            try:
+                with open(out_file, 'w') as file:
+                    file.write(convo_summary)
+                print("Summary saved to",out_file)
+
         return convo_summary
 
 
@@ -98,6 +109,7 @@ def show_help():
       - query <input>: Run the query function with the specified input.
       - predict <input>: Run the predict function with the specified input.
       - search <input>: Run the search function with the specified input.
+      - summarize <output>: Save the output from conversation stream to a file.
       - help: Show this help message.
       - quit: Exit the program.
     """
@@ -148,6 +160,10 @@ def main(log_dir='./log/'):
 
         elif command.lower() == "search":
             response = rs.search(content, log_file=log_file)
+            print(response)
+
+        elif command.lower() == "summarize":
+            response = rs.summary_conversation(out_file=content)
             print(response)
 
         elif command.lower() == "help":

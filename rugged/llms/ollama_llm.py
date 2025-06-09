@@ -4,6 +4,8 @@ from langchain_ollama import ChatOllama as ollama_llm
 #from langchain_ollama.llms import OllamaLLM as ollama_llm
 #from config import OLLAMA_URI, OLLAMA_MODEL
 from config import OLLAMA_URI
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 class OllamaLLM(BaseLLM):
     def __init__(self):

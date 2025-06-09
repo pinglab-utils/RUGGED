@@ -17,12 +17,10 @@ from utils.openai_api.named_entity_recognition import NamedEntityRecognition
 
 class LiteratureSearch:
 
-    def __init__(self, user_query, conversation_summary, log_file, corpus='./data/text_corpus/pubmed.json',
+    def __init__(self, log_file, corpus='./data/text_corpus/pubmed.json',
                  full_text_file = './data/textpmid2fulltext_sections.json', query_only=False):
-        self.name = "Literature Search"
+        self.name = "LiteratureSearch"
         
-        self.user_query = user_query
-        self.conversation_summary = conversation_summary
         self.ner = NamedEntityRecognition()
         
         self.corpus = corpus
@@ -167,7 +165,9 @@ class LiteratureSearch:
         return orc_full_text, ccr_full_text
 
 
-    def run(self):
+    def run(self, user_query, conversation_summary):
+        self.user_query = user_query
+        self.conversation_summary = conversation_summary
         print("Performing Literature Retrieval...")
         
         print("Identifying keywords based on query...")

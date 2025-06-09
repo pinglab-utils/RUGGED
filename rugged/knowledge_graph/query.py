@@ -16,7 +16,7 @@ QUERY_EXAMPLES = read_query_examples()
 
 class QuerySystem:
     def __init__(self, log_file, query_only=False):
-
+        self.name = 'QuerySystem'
         # Log file for writing program progress
         self.log_file = log_file
         

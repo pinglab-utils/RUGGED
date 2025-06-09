@@ -7,7 +7,7 @@ from langchain_community.vectorstores import FAISS
 
 from transformers import AutoTokenizer, AutoModel
 from sentence_transformers import SentenceTransformer
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 from config import BIAS_MITIGATION_PROMPT, LITERATURE_VALIDATION_PROMPT
 

@@ -19,6 +19,8 @@ from config import REASONING_AGENT
 
 class PredictionExplorer:
     def __init__(self, input_directory, log_file):
+        self.name = 'PredictionExplorer'
+
         # Log file for writing program progress
         self.log_file = log_file
 
