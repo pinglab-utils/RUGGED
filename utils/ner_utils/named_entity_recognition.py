@@ -1,16 +1,14 @@
 import sys
 import json
 import re
-from utils.openai_api.rag_system import RAG
-from utils.openai_api.biobert_ner import BioBERT_NER
-from utils.openai_api.spacy_ner import SpacyNER
+from utils.ner_utils.biobert_ner import BioBERT_NER
+from utils.ner_utils.spacy_ner import SpacyNER
 
 
 class NamedEntityRecognition():
     def __init__(self):
         self.biobertner = BioBERT_NER()
         self.spacyner = SpacyNER()
-        self.rag = RAG()
 
     def jaccard_similarity(self, word1, word2):
         """
@@ -45,13 +43,6 @@ class NamedEntityRecognition():
 
         return cleaned_results
 
-#    def get_similar_graph_node(self, word):
-#        """
-#        Method to get the node names for each entity.
-#
-#        Returns a list of supposedly related nodes based off of embeddings.
-#        """
-#        return self.rag.query(word)
 
     def get_context(self, text):
         # Get all entities
@@ -62,23 +53,5 @@ class NamedEntityRecognition():
         all_ents = spacy_res + bert_res
         cleaned_ents = self.clean_results(all_ents)
         return cleaned_ents
-        # Define context
-        #context = dict()
-        #for ent in cleaned_ents:
-        #    context[ent] = self.get_similar_graph_node(ent)
-
-        #return context
 
 
-if __name__ == "__main__":
-    TEXT = "How viable is this hypothesis: Mercuric Chloride interacts with Alpha-Synuclein and other proteins involved in protein misfolding and aggregation pathways, exacerbating neurotoxicity."
-    TEXT = "How viable is this hypothesis: Lenvatinib inhibits Tyrosine-protein kinase Kit"
-    #    TEXT = "What mesh compounds block BFGFR and are in the PPI network of Cadherin"
-    x = NamedEntityRecognition()
-    y = x.get_context(TEXT)
-    #    z = x.jaccard_similarity('red blue green', 'green red blue')
-    print(y)
-#    TEXT = "What compounds which are drugs act as chelators for Alpha-2-Z-globulin"
-#    TEXT = ""
-#    TEXT = "What proteins share the same biological processes as dystrophin and KGFR?"
-#    TEXT = "What antibodies exist for Leukocyte surface antigen?"

@@ -11,7 +11,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.chat_models import ChatOpenAI
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
-from utils.openai_api.named_entity_recognition import NamedEntityRecognition
+from utils.ner_utils.named_entity_recognition import NamedEntityRecognition
 
 from config import KG_FAISS_INDEX, CYPHER_QUERY_FIRST_PROMPT_INSTRUCTIONS, CYPHER_QUERY_REVISION_PROMPT_INSTRUCTIONS
 

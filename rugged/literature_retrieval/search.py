@@ -13,7 +13,7 @@ from config import REASONING_AGENT, TEXT_EVALUATOR_AGENT
 
 from rugged.agents import agent_loader
 from utils.logger import write_to_log
-from utils.openai_api.named_entity_recognition import NamedEntityRecognition
+from utils.ner_utils.named_entity_recognition import NamedEntityRecognition
 
 class LiteratureSearch:
 
